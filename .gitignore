@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+target/
+pkg/
+logs/
+.pids/
+.env
+.env.local
+*.log
