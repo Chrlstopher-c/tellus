@@ -11,6 +11,7 @@ import type { PickResult } from './planet-view/planet-view';
 import type { ViewMode } from './planet-view/rig';
 import { ViewToggle } from './planet-view/ViewToggle';
 import { rendererLogger } from './shared/logger';
+import { probeRenderer } from './shared/renderer-probe';
 import { TimeBar } from './time-control/TimeBar';
 import { Vitals } from './world-status/Vitals';
 import { WorldHeader } from './world-status/WorldHeader';
@@ -98,6 +99,7 @@ export function App(): ReactElement {
   const session = useWorldSession();
   const [view, setView] = useState<ViewState>({ mode: 'globe', layer: 0, clouds: true, dual: false, power: null });
   const starting = session.state.phase !== 'running';
+  useEffect(() => { void probeRenderer().then((p) => { document.body.dataset.renderer = p.kind; }); }, []);
   useEffect(() => { document.body.classList.toggle('starting', starting); }, [starting]);
   useEffect(() => { document.body.classList.toggle('targeting', view.power !== null); }, [view.power]);
   return (

@@ -6,7 +6,7 @@ test('boot : la fenêtre s’ouvre, titre Tellus, #root rendu', async () => {
   try {
     const win = await app.firstWindow();
     await expect(win).toHaveTitle('Tellus');
-    await expect(win.locator('#root')).toContainText('Tellus');
+    await expect(win.getByTestId('start')).toContainText('Tellus');
   } finally {
     await app.close();
   }
