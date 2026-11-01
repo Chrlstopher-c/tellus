@@ -1,17 +1,12 @@
 // Champs de la planète côté GPU : table texel → cellules, deux instantanés par cellule, texture résolue.
 import * as THREE from 'three';
+import type { CellLookup } from '../sim-bridge/protocol';
 import { RESOLVE_FRAG, RESOLVE_VERT } from './shaders/resolve';
 
 export const CELLS_WIDTH = 1024;
 export const FIELD_CHANNELS = 4;
 
-/** Table de rendu calculée par la simulation : 3 cellules (RGBA, A inutilisé) et 2 poids (RG) par texel. */
-export interface CellLookup {
-  width: number;
-  height: number;
-  ids: Float32Array;
-  weights: Float32Array;
-}
+export type { CellLookup } from '../sim-bridge/protocol';
 
 /** Instantané : par cellule altitude (m), température (°C), précipitations (mm/an), couvert végétal (0-1). */
 export interface CellSnapshot {
