@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tellus — maquette</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="vignette"></div>
+
+  <header class="identity">
+    <span class="wordmark">Tellus</span>
+    <button class="world" id="world-button" aria-haspopup="true">
+      <h1 id="world-name">Ascalon</h1>
+      <i data-lucide="chevron-down"></i>
+    </button>
+    <p class="world-sub" id="world-sub">Monde généré · graine 48 213</p>
+    <div class="world-menu glass" id="world-menu" hidden></div>
+  </header>
+
+  <section class="clock">
+    <p class="era" id="era">Phanérozoïque · âge des grandes forêts</p>
+    <p class="year"><span id="year">412 806 233</span> <span class="unit">ans</span></p>
+  </section>
+
+  <div class="toast glass" id="toast" hidden>
+    <span class="toast-dot"></span>
+    <div><p class="toast-title" id="toast-title"></p><p class="toast-body" id="toast-body"></p></div>
+  </div>
+
+  <nav class="top-actions">
+    <div class="segmented glass" role="tablist">
+      <button class="seg active" data-mode="globe"><i data-lucide="globe-2"></i>Globe</button>
+      <button class="seg" data-mode="map"><i data-lucide="map"></i>Carte</button>
+      <span class="seg-pill"></span>
+    </div>
+    <button class="icon-btn glass" id="dual" title="Mode deux écrans"><i data-lucide="monitor-smartphone"></i></button>
+    <button class="icon-btn glass" title="Réglages"><i data-lucide="settings-2"></i></button>
+  </nav>
+
+  <aside class="layers glass">
+    <p class="panel-label">Calques</p>
+    <ul id="layer-list"></ul>
+    <div class="legend" id="legend"></div>
+    <label class="toggle"><input type="checkbox" id="clouds" checked /><span></span>Nuages</label>
+  </aside>
+
+  <aside class="inspector glass" id="inspector"></aside>
+
+  <section class="vitals glass" id="vitals"></section>
+
+  <section class="time glass">
+    <div class="timeline" id="timeline">
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <div class="ticks" id="ticks"></div>
+      <div class="ends"><span>−4,5 Ga · formation</span><span id="now-label">maintenant</span></div>
+    </div>
+    <div class="controls">
+      <button class="play" id="play" title="Lecture / pause"><i data-lucide="pause"></i></button>
+      <div class="speeds" id="speeds"></div>
+      <p class="speed-label" id="speed-label"></p>
+    </div>
+  </section>
+
+  <section class="powers glass" id="powers"></section>
+  <p class="power-hint" id="power-hint" hidden></p>
+
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
