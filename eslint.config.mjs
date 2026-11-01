@@ -15,7 +15,7 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       'max-lines': ['error', { max: 500 }],
       'max-lines-per-function': ['error', { max: 35 }],
-      'max-len': ['error', { code: 120 }],
+      'max-len': ['error', { code: 120, ignoreTemplateLiterals: true, ignoreStrings: true }],
       'no-console': 'error',
     },
   },

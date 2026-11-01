@@ -15,7 +15,11 @@
     "test:e2e": "electron-vite build && playwright test"
   },
   "dependencies": {
+    "@fontsource/geist": "5.3.0",
+    "@fontsource/geist-mono": "5.3.0",
+    "@fontsource/instrument-serif": "5.3.0",
     "framer-motion": "14.9.0",
+    "lucide-react": "1.66.0",
     "pino": "10.4.0",
     "pino-pretty": "13.2.0",
     "react": "19.3.1",
