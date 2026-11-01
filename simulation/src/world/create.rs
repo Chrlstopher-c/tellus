@@ -124,7 +124,9 @@ fn assemble(parts: Parts) -> Result<World, WorldError> {
         description,
     } = parts;
     let elevation: Vec<f64> = planet.elevation_m.iter().map(|&h| f64::from(h)).collect();
-    let is_ocean: Vec<bool> = planet.crust.iter().map(|&c| c < 0.5).collect();
+    // Océan = sous le niveau de la mer, sur un monde qui a de l'eau (un corps sec n'a aucune croûte « océan »).
+    let has_water = planet.crust.iter().any(|&c| c < 0.5);
+    let is_ocean: Vec<bool> = planet.elevation_m.iter().map(|&h| has_water && h < 0.0).collect();
     let surface = Surface {
         elevation_m: &elevation,
         is_ocean: &is_ocean,

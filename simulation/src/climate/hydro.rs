@@ -23,6 +23,9 @@ pub const DIAGNOSTIC_INTERVAL_YEARS: f64 = 10.0;
 /// Dérive de la température moyenne qui déclenche un recalcul, K.
 pub const DIAGNOSTIC_DELTA_K: f64 = 0.5;
 /// Saisons représentatives (mois de départ de chacune, trois mois chacune).
+/// Puits de fond de la vapeur (~115 jours, retombe en bruine) : garde le système inversible là où ni évaporation, ni soulèvement,
+/// ni flux sortant ne retirent d'eau (terre sèche sous le vent).
+const BACKGROUND_SINK_PER_S: f64 = 1.0e-7;
 const SEASONS: usize = 4;
 const SEASON_MONTHS: [usize; SEASONS] = [0, 3, 6, 9];
 /// Pression de référence pour la saturation, hPa.
@@ -250,7 +253,7 @@ fn linear_terms(mesh: &Mesh, terms: &Terms, lift: &[f64]) -> (Vec<f64>, Vec<f64>
     let mut source = Vec::with_capacity(terms.coeff.len());
     for (i, &c) in terms.coeff.iter().enumerate() {
         let area = mesh.area_sr()[i] * radius * radius;
-        lin.push(area * (c / MOIST_LAYER_KG_M2 + lift[i]));
+        lin.push(area * (c / MOIST_LAYER_KG_M2 + lift[i] + BACKGROUND_SINK_PER_S));
         source.push(area * c * terms.qsat[i]);
     }
     (lin, source)
@@ -259,7 +262,7 @@ fn linear_terms(mesh: &Mesh, terms: &Terms, lift: &[f64]) -> (Vec<f64>, Vec<f64>
 /// Précipitations `P = max(0, W − W_sat)/τ + λ·W` et évaporation `E = c (q_sat − W/M)`, kg m⁻² s⁻¹.
 fn fluxes(terms: &Terms, lift: &[f64], w: &[f64]) -> (Vec<f64>, Vec<f64>) {
     let precip = (0..w.len())
-        .map(|i| (w[i] - terms.wsat[i]).max(0.0) / RAIN_TIME_S + lift[i] * w[i])
+        .map(|i| (w[i] - terms.wsat[i]).max(0.0) / RAIN_TIME_S + (lift[i] + BACKGROUND_SINK_PER_S) * w[i])
         .collect();
     let evap = (0..w.len())
         .map(|i| terms.coeff[i] * (terms.qsat[i] - w[i] / MOIST_LAYER_KG_M2))
@@ -269,7 +272,7 @@ fn fluxes(terms: &Terms, lift: &[f64], w: &[f64]) -> (Vec<f64>, Vec<f64>) {
 
 fn clamp_non_negative(w: &mut [f64]) -> u32 {
     let mut clamped = 0;
-    for value in w.iter_mut().filter(|v| **v < 0.0) {
+    for value in w.iter_mut().filter(|v| **v < 0.0 || !v.is_finite()) {
         *value = 0.0;
         clamped += 1;
     }
