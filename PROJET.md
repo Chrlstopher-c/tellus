@@ -65,7 +65,7 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 - [ ] E2.S5 — Sélecteur de monde (graine, fraction d'eau, corps réels), écran de départ — VERIFY: `pnpm test:e2e --grep world-picker`
 
 ### E3 — Climat
-- [ ] E3.S1 — Orbite, insolation Berger, saisons — VERIFY: `cargo test climate::insolation` (V-01 à V-05)
+- [x] E3.S1 — Orbite, insolation Berger, saisons — VERIFY: `cargo test climate::insolation` (V-01 à V-05)
 - [ ] E3.S2 — EBM implicite, effet de serre, τ calibrés, régimes de pas — VERIFY: `cargo test climate::ebm climate::planets`
 - [ ] E3.S3 — Glace, albédo, boule de neige hystérétique — VERIFY: `cargo test climate::ice`
 - [ ] E3.S4 — Vents, évaporation, précipitations, orographie, glace de mer — VERIFY: `cargo test climate::hydro climate::wind climate::koppen`
