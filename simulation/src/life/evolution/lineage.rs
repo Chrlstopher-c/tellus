@@ -123,3 +123,17 @@ pub fn refresh_moments(table: &mut LineageTable, cohorts: &[Vec<Cohort>]) {
         }
     }
 }
+
+/// Effectif total de chaque lignée (suffit à l'extinction ; les moments coûtent davantage et ne sont pas nécessaires).
+pub fn refresh_totals(table: &mut LineageTable, cohorts: &[Vec<Cohort>]) {
+    for lineage in table.lineages.iter_mut() {
+        lineage.n_total = 0.0;
+    }
+    for cell in cohorts {
+        for c in cell {
+            if let Some(lineage) = table.lineages.get_mut(c.lineage as usize) {
+                lineage.n_total += c.n;
+            }
+        }
+    }
+}

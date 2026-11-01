@@ -7,6 +7,7 @@ use super::graph::Graph;
 use super::ledger::LifeLedger;
 use crate::shared::grid::Grid;
 use crate::shared::rng::hash;
+use std::sync::Arc;
 
 /// Effectif fondateur d'une lignée introduite (individus par cellule).
 pub const FOUNDER_N: f64 = 20.0;
@@ -22,7 +23,7 @@ pub struct LifeOutputs {
     pub biome: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct LifeState {
     pub(crate) graph: Graph,
     pub(crate) area_m2: Vec<f64>,
@@ -32,7 +33,7 @@ pub struct LifeState {
     pub(crate) ledger: LifeLedger,
     pub(crate) outputs: LifeOutputs,
     pub(crate) photosynth: bool,
-    pub(crate) threads: usize,
+    pub(crate) pool: Option<Arc<rayon::ThreadPool>>,
     pub(crate) last_tick: u64,
 }
 
@@ -40,6 +41,7 @@ pub struct LifeState {
 pub fn init(grid: &Grid) -> LifeState {
     let cells = grid.cell_count();
     let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+    let pool = build_pool(threads);
     LifeState {
         graph: Graph::from_grid(grid),
         area_m2: grid.areas_m2().to_vec(),
@@ -55,7 +57,7 @@ pub fn init(grid: &Grid) -> LifeState {
             biome: vec![0; cells],
         },
         photosynth: false,
-        threads,
+        pool,
         last_tick: 0,
     }
 }
@@ -66,7 +68,10 @@ pub fn spawn_lineage(state: &mut LifeState, traits: Genome, cell: usize) -> Opti
         return None;
     }
     let id = state.lineages.create(traits, None, state.last_tick, cell as u32);
-    let cohort = Cohort::new(id, traits, FOUNDER_N);
+    let mut cohort = Cohort::new(id, traits, FOUNDER_N);
+    if cohort.is_producer() {
+        cohort.mass_ind = 0.0;
+    }
     state.ledger.import_carbon(cohort.biomass());
     state.fauna[cell].push(cohort);
     state.photosynth = state.has_producers();
@@ -80,7 +85,7 @@ impl LifeState {
 
     /// Nombre de threads utilisés par le pas. Ne change jamais le résultat (déterminisme).
     pub fn set_threads(&mut self, threads: usize) {
-        self.threads = threads.max(1);
+        self.pool = build_pool(threads);
     }
 
     pub fn cohorts(&self, cell: usize) -> &[Cohort] {
@@ -176,6 +181,15 @@ impl LifeState {
         }
         mix(acc, self.lineages.count() as u64, 0, 1)
     }
+}
+
+/// Pool rayon dédié au vivant ; `None` si sa construction échoue (le pas reste alors séquentiel, même résultat).
+fn build_pool(threads: usize) -> Option<Arc<rayon::ThreadPool>> {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(threads.max(1))
+        .build()
+        .ok()
+        .map(Arc::new)
 }
 
 fn mix(acc: u64, value: u64, cell: u32, stream: u32) -> u64 {

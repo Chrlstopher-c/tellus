@@ -2,7 +2,7 @@
 
 use crate::clock::Regime;
 use crate::life::evolution::{idx, Genome, NT};
-use crate::life::{init, step, LifeInputs, LifeReport, LifeState};
+use crate::life::{init, spawn_lineage, step, LifeInputs, LifeReport, LifeState};
 use crate::shared::grid::Grid;
 use crate::shared::units::R_EARTH_M;
 
@@ -75,6 +75,24 @@ pub fn world(level: u8) -> (Grid, LifeState, Forcing) {
 /// Un pas annuel (Δt = 1 an, régime explicite) au tick `tick`.
 pub fn run(state: &mut LifeState, grid: &Grid, forcing: &Forcing, tick: u64) -> LifeReport {
     step(state, grid, &forcing.inputs(), 1.0, Regime::Annual, tick, SEED)
+}
+
+/// Communauté ensemencée : 24 herbivores (masses et optimums thermiques étalés), 8 carnivores, des producteurs.
+/// Chaque lignée est introduite en un point ; la dispersion la répand ensuite.
+pub fn seed_community_wide(state: &mut LifeState, cells: usize) {
+    spawn_lineage(state, producer_traits(), cells / 3).expect("cellule valide");
+    for k in 0..24_u32 {
+        let mut g = herbivore_traits();
+        g[idx::LOG_MASS] = 0.2 + 0.5 * f64::from(k) / 24.0;
+        g[idx::T_OPT] = (f64::from(k) + 0.5) / 24.0;
+        spawn_lineage(state, g, (k as usize * 97 + 11) % cells).expect("cellule valide");
+    }
+    for k in 0..8_u32 {
+        let mut g = carnivore_traits();
+        g[idx::LOG_MASS] = 0.5 + 0.4 * f64::from(k) / 8.0;
+        g[idx::T_OPT] = (f64::from(k) + 0.5) / 8.0;
+        spawn_lineage(state, g, (k as usize * 131 + 50) % cells).expect("cellule valide");
+    }
 }
 
 /// Lignée photosynthétique (trait 17 = 1) : seule source de flore.

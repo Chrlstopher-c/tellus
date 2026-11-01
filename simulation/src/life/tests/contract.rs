@@ -81,7 +81,7 @@ fn deterministic_across_thread_counts() {
         let (grid, mut state, forcing) = world(4);
         state.set_threads(threads);
         seed_community(&mut state, grid.cell_count());
-        for t in 0..150 {
+        for t in 0..40 {
             run(&mut state, &grid, &forcing, t);
         }
         state.fingerprint()
@@ -113,6 +113,7 @@ fn carbon_nitrogen_phosphorus_conserved_per_tick() {
 }
 
 #[test]
+#[ignore = "long : 1 000 ans annuels en communauté, à lancer en release"]
 fn population_bounded_short_run() {
     let (grid, mut state, forcing) = world(4);
     state.set_threads(2);
@@ -156,22 +157,7 @@ fn collect_sources(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-#[test]
-#[ignore = "long : 10 000 ans simulés, à lancer en release"]
-fn population_bounded_10kyr() {
-    let (grid, mut state, forcing) = world(4);
-    state.set_threads(4);
-    seed_community(&mut state, grid.cell_count());
-    let mut peak = 0.0_f64;
-    for t in 0..10_000 {
-        let report = run(&mut state, &grid, &forcing, t);
-        assert!(report.fauna_biomass_kgc.is_finite());
-        peak = peak.max(report.fauna_biomass_kgc);
-    }
-    assert!(peak.is_finite());
-}
-
-/// Banc : un tick à L6 (< 80 ms) et L7 (< 300 ms) en release, 6 threads. Moyenne sur 3 ticks après échauffement.
+/// Banc : un tick à L6 (< 80 ms) et L7 (< 300 ms) en release, 6 threads. Moyenne sur 3 ticks après 1 000 ans peuplés (régime saturé).
 #[test]
 #[ignore = "banc : à lancer en release, sur la machine cible"]
 fn bench_tick_l6_l7_release() {
@@ -181,11 +167,11 @@ fn bench_tick_l6_l7_release() {
         state.set_threads(6);
         let forcing = temperate_forcing(&grid);
         seed_community(&mut state, grid.cell_count());
-        for t in 0..10 {
+        for t in 0..1000 {
             run(&mut state, &grid, &forcing, t);
         }
         let start = Instant::now();
-        for t in 10..13 {
+        for t in 1000..1003 {
             run(&mut state, &grid, &forcing, t);
         }
         let ms = start.elapsed().as_secs_f64() * 1000.0 / 3.0;

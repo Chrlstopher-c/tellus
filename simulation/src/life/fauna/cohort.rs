@@ -6,7 +6,7 @@ use crate::life::evolution::{adult_mass_kgc, birth_fraction, genetic_distance, i
 pub const MAX_COHORTS: usize = 32;
 const DUST_N: f64 = 1e-9;
 /// Écart sous lequel deux cohortes de même lignée sont fusionnées à l'insertion.
-const MERGE_DISTANCE: f64 = 0.05;
+const MERGE_RATIO: f64 = 1.122;
 const PRODUCER_THRESHOLD: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -77,6 +77,12 @@ fn pair_distance(a: &Cohort, b: &Cohort) -> f64 {
     mass_gap + genetic_distance(&a.genome, &b.genome)
 }
 
+/// Rapport des masses individuelles (≥ 1), sans logarithme : coût négligeable dans la boucle d'insertion.
+fn mass_ratio(a: f64, b: f64) -> f64 {
+    let (hi, lo) = (a.max(b), a.min(b).max(1e-300));
+    hi / lo
+}
+
 /// Insère une cohorte entrante : fusion avec la plus proche de même lignée si elle est voisine ou si la cellule
 /// est pleine, sinon ajout. Évite l'accumulation de cohortes quasi identiques entre deux fusions.
 pub fn insert(cohorts: &mut Vec<Cohort>, incoming: Cohort) {
@@ -87,10 +93,10 @@ pub fn insert(cohorts: &mut Vec<Cohort>, incoming: Cohort) {
         .iter()
         .enumerate()
         .filter(|(_, c)| c.lineage == incoming.lineage)
-        .map(|(k, c)| (k, pair_distance(c, &incoming)))
+        .map(|(k, c)| (k, mass_ratio(c.mass_ind, incoming.mass_ind)))
         .min_by(|a, b| a.1.total_cmp(&b.1));
     match nearest {
-        Some((k, distance)) if distance < MERGE_DISTANCE || cohorts.len() >= MAX_COHORTS => {
+        Some((k, ratio)) if ratio < MERGE_RATIO || cohorts.len() >= MAX_COHORTS => {
             cohorts[k] = merge(&cohorts[k], &incoming);
         }
         _ => cohorts.push(incoming),

@@ -6,7 +6,7 @@ use super::pft::{LAND_PFT, PFTS, PFT_COUNT};
 const SEED_FLOOR: f64 = 1e-4;
 /// Mortalité supplémentaire hors de sa niche climatique.
 const CLIMATE_STRESS: f64 = 0.2;
-const MAX_STEP_YR: f64 = 0.1;
+const MAX_STEP_YR: f64 = 0.5;
 const MAX_SUBSTEPS: u32 = 200;
 /// Rapport gC/gN et gC/gP des tissus végétaux.
 pub const CN_PLANT: f64 = 40.0;

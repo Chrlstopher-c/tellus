@@ -1,7 +1,7 @@
 //! Consommation : Holling II (herbivores, plantes), Holling III (prédateurs, proies animales), gaussienne de taille.
 
 use super::cohort::Cohort;
-use super::metabolism::max_intake_rate;
+use super::metabolism::max_intake_at;
 use crate::life::evolution::idx;
 
 /// Demi-saturation des plantes accessibles par cellule, kgC.
@@ -79,19 +79,23 @@ fn take_animals(cohorts: &mut [Cohort], pred: usize, demand: f64) -> f64 {
 
 /// Consommation de toutes les cohortes d'une cellule pendant `h` ans.
 /// Renvoie, par cohorte, (plantes prélevées, proies animales prélevées) en kgC ; `plant_avail` est décrémenté.
-pub fn feed(cohorts: &mut [Cohort], plant_avail: &mut f64, h: f64, temp_c: f64) -> Vec<(f64, f64)> {
+pub fn feed(cohorts: &mut [Cohort], plant_avail: &mut f64, h: f64, arr: f64) -> Vec<(f64, f64)> {
     let mut taken = vec![(0.0, 0.0); cohorts.len()];
     for i in 0..cohorts.len() {
         let cohort = cohorts[i];
         if cohort.is_producer() || cohort.n <= 0.0 {
             continue;
         }
-        let demand = cohort.n * max_intake_rate(cohort.mass_ind, temp_c) * h;
+        let demand = cohort.n * max_intake_at(cohort.mass_ind, arr) * h;
         let diet = cohort.genome[idx::DIET].clamp(0.0, 1.0);
         let plant_req = demand * (1.0 - diet) * holling2(*plant_avail, HALF_SAT_PLANT_KGC);
         let plant = plant_req.min(*plant_avail).max(0.0);
         *plant_avail -= plant;
-        let animal = take_animals(cohorts, i, demand * diet);
+        let animal = if diet > 0.0 {
+            take_animals(cohorts, i, demand * diet)
+        } else {
+            0.0
+        };
         taken[i] = (plant, animal);
     }
     taken

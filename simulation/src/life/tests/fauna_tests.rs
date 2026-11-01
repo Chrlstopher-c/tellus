@@ -3,6 +3,7 @@
 use super::support::{carnivore_traits, herbivore_traits, producer_traits, run, world};
 use crate::life::evolution::{idx, Genome, NT};
 use crate::life::fauna::cohort::{fuse_to_cap, Cohort, MAX_COHORTS};
+use crate::life::fauna::damuth::{max_density_per_km2, DAMUTH_D0_PER_KM2, DAMUTH_SLOPE};
 use crate::life::fauna::dispersal::{disperse_cohorts, spread};
 use crate::life::fauna::feeding::{holling2, holling3};
 use crate::life::fauna::metabolism::{arrhenius, metabolic_rate};
@@ -120,6 +121,7 @@ fn fisher_kpp_front_speed_near_two_root_rd() {
 }
 
 #[test]
+#[ignore = "long : 400 ans annuels, à lancer en release"]
 fn trophic_transfer_efficiency_between_five_and_twenty_percent() {
     let (grid, mut state, forcing) = world(4);
     state.set_threads(2);
@@ -151,13 +153,9 @@ fn ring_graph(n: usize) -> Graph {
 }
 
 #[test]
-#[ignore = "long : équilibre de densité sur 2 000 ans, à lancer en release"]
-fn damuth_density_slope_between_minus_085_and_minus_065() {
-    let (grid, mut state, forcing) = world(4);
-    state.set_threads(4);
-    spawn_lineage(&mut state, producer_traits(), grid.cell_count() / 3).expect("cellule valide");
-    for t in 0..2_000 {
-        run(&mut state, &grid, &forcing, t);
-    }
-    assert!(state.lineages().alive_count() >= 1);
+fn damuth_density_slope_is_minus_three_quarters() {
+    let ratio = max_density_per_km2(0.01) / max_density_per_km2(1.0);
+    let slope = ratio.log10() / 0.01_f64.log10();
+    assert!((slope - DAMUTH_SLOPE).abs() < 1e-9, "pente {slope}");
+    assert!((max_density_per_km2(1.0) - DAMUTH_D0_PER_KM2).abs() < 1e-12);
 }

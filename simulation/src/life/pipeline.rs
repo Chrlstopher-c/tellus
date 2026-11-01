@@ -1,9 +1,9 @@
 //! Pas du vivant : cellules en phase (une sur dix par tick), blocs fixes traités en parallèle, dispersion, évolution, bilan.
 
-use std::thread;
+use rayon::prelude::*;
 
 use super::evolution::extinction::update_extinctions;
-use super::evolution::lineage::{refresh_moments, LineageId};
+use super::evolution::lineage::{refresh_moments, refresh_totals, LineageId};
 use super::evolution::speciation::speciate;
 use super::fauna::dispersal::disperse_cohorts;
 use super::fauna::{remove_lineages, update_cell, Cohort, FaunaEnv, FaunaFlux};
@@ -22,7 +22,6 @@ use crate::shared::rng::unit_f64;
 pub const PHASE_PERIOD: u64 = 10;
 /// Taille fixe des blocs : le découpage ne dépend jamais du nombre de threads.
 const CHUNK_CELLS: usize = 256;
-const SPECIATION_PERIOD: u64 = 10;
 const STREAM_FIRE: u32 = 0x0F1E;
 const STREAM_EVOLUTION: u32 = 0x0E70;
 const ICE_THRESHOLD: f64 = 0.5;
@@ -79,7 +78,7 @@ fn run_cells(
     snapshot: &[[f64; PFT_COUNT]],
     (tick, seed, dt_years, photo): (u64, u64, f64, bool),
 ) -> Flows {
-    let threads = state.threads;
+    let pool = state.pool.clone();
     let ctx = CellCtx {
         inputs,
         graph: &state.graph,
@@ -97,7 +96,7 @@ fn run_cells(
         .enumerate()
         .map(|(k, (flora, fauna))| (k * CHUNK_CELLS, flora, fauna))
         .collect();
-    run_chunks(jobs, &ctx, threads)
+    run_chunks(jobs, &ctx, pool.as_deref())
         .iter()
         .fold(Flows::default(), |mut acc, part| {
             acc.add(part);
@@ -105,32 +104,13 @@ fn run_cells(
         })
 }
 
-/// Exécute les blocs sur `threads` fils ; les résultats sont rendus dans l'ordre des blocs (déterminisme).
-fn run_chunks(jobs: Vec<ChunkJob<'_>>, ctx: &CellCtx<'_>, threads: usize) -> Vec<Flows> {
-    let workers = threads.clamp(1, jobs.len().max(1));
-    let mut buckets: Vec<Vec<(usize, ChunkJob<'_>)>> = (0..workers).map(|_| Vec::new()).collect();
-    for (k, job) in jobs.into_iter().enumerate() {
-        buckets[k % workers].push((k, job));
+/// Exécute les blocs en parallèle (rayon) ; les résultats sont rendus dans l'ordre des blocs : résultat identique
+/// quel que soit le nombre de threads. Sans pool, les blocs sont traités séquentiellement dans le même ordre.
+fn run_chunks(jobs: Vec<ChunkJob<'_>>, ctx: &CellCtx<'_>, pool: Option<&rayon::ThreadPool>) -> Vec<Flows> {
+    match pool {
+        Some(pool) => pool.install(move || jobs.into_par_iter().map(|job| process_chunk(job, ctx)).collect()),
+        None => jobs.into_iter().map(|job| process_chunk(job, ctx)).collect(),
     }
-    let mut done: Vec<(usize, Flows)> = thread::scope(|scope| {
-        let handles: Vec<_> = buckets
-            .into_iter()
-            .map(|bucket| {
-                scope.spawn(move || {
-                    bucket
-                        .into_iter()
-                        .map(|(k, job)| (k, process_chunk(job, ctx)))
-                        .collect::<Vec<_>>()
-                })
-            })
-            .collect();
-        handles
-            .into_iter()
-            .flat_map(|handle| handle.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)))
-            .collect()
-    });
-    done.sort_by_key(|(k, _)| *k);
-    done.into_iter().map(|(_, flows)| flows).collect()
 }
 
 fn process_chunk((base, flora, fauna): ChunkJob<'_>, ctx: &CellCtx<'_>) -> Flows {
@@ -155,6 +135,7 @@ fn process_cell(index: usize, flora: &mut FloraCell, cohorts: &mut Vec<Cohort>, 
     let env = FaunaEnv {
         temp_c: f64::from(ctx.inputs.temperature_c[index]),
         plant_kgc,
+        area_m2: ctx.area_m2[index],
         seed: ctx.seed,
         tick: ctx.tick,
         cell: index as u32,
@@ -238,17 +219,21 @@ fn add_fauna(flows: &mut Flows, flux: &FaunaFlux) {
 
 /// Spéciation, moments, extinctions. Explicite : tous les `SPECIATION_PERIOD` ticks. Relaxé : tirage p = 1 − e^(−λΔt).
 fn evolve(state: &mut LifeState, regime: Regime, (tick, seed, dt): (u64, u64, f64), flows: &mut Flows) -> (u32, u32) {
-    refresh_moments(&mut state.lineages, &state.fauna);
-    let (check_years, due) = speciation_schedule(regime, (tick, seed, dt));
-    let births = if due {
-        speciate(&mut state.lineages, &mut state.fauna, &state.graph, tick, check_years).len()
+    if !tick.is_multiple_of(PHASE_PERIOD) {
+        return (0, 0);
+    }
+    let years = PHASE_PERIOD as f64 * dt;
+    refresh_totals(&mut state.lineages, &state.fauna);
+    let births = if speciation_due(regime, (tick, seed), years) {
+        refresh_moments(&mut state.lineages, &state.fauna);
+        speciate(&mut state.lineages, &mut state.fauna, &state.graph, tick, years).len()
     } else {
         0
     };
-    refresh_moments(&mut state.lineages, &state.fauna);
-    let dead = update_extinctions(&mut state.lineages, dt, tick);
-    let lost = bury_extinct(state, &dead);
-    flows.litter_in += lost;
+    let dead = update_extinctions(&mut state.lineages, years, tick);
+    if !dead.is_empty() {
+        flows.litter_in += bury_extinct(state, &dead);
+    }
     (
         u32::try_from(births).unwrap_or(u32::MAX),
         u32::try_from(dead.len()).unwrap_or(u32::MAX),
@@ -268,15 +253,9 @@ fn bury_extinct(state: &mut LifeState, dead: &[LineageId]) -> f64 {
     total
 }
 
-fn speciation_schedule(regime: Regime, (tick, seed, dt): (u64, u64, f64)) -> (f64, bool) {
-    if is_explicit(regime) {
-        (PHASE_PERIOD as f64 * dt, tick % SPECIATION_PERIOD == 0)
-    } else {
-        (
-            dt,
-            unit_f64(seed, tick, 0, STREAM_EVOLUTION) < evolution_probability(dt),
-        )
-    }
+/// Explicite : spéciation à chaque cadence de phase. Relaxé : tirage avec p = 1 − e^(−λΔt) sur la cadence.
+fn speciation_due(regime: Regime, (tick, seed): (u64, u64), years: f64) -> bool {
+    is_explicit(regime) || unit_f64(seed, tick, 0, STREAM_EVOLUTION) < evolution_probability(years)
 }
 
 /// Recalcule les champs de sortie par cellule à partir de la flore et des forçages.

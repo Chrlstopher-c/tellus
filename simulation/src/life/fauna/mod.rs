@@ -2,7 +2,9 @@
 
 pub mod cell;
 pub mod cohort;
+pub mod damuth;
 pub mod dispersal;
+pub mod dynamics;
 pub mod feeding;
 pub mod metabolism;
 

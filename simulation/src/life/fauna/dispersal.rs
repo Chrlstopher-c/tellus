@@ -1,4 +1,5 @@
-//! Dispersion conservative : diffusion locale sur le graphe et sauts à queue épaisse (vivant.md § 3.6).
+//! Dispersion conservative : chaque départ va à un voisin tiré au hasard et, pour une fraction, à un saut à queue
+//! épaisse (vivant.md § 3.6). La biomasse est conservée exactement ; une parcelle partante est copiée une seule fois.
 
 use super::cohort::{fuse_to_cap, insert, Cohort};
 use crate::life::evolution::mobility_rate;
@@ -9,6 +10,14 @@ use crate::shared::rng::unit_f64;
 const LONG_SHARE: f64 = 0.05;
 const MAX_JUMP_HOPS: u32 = 16;
 const MAX_FRACTION: f64 = 0.5;
+
+/// Arrivée : `amount` individus de la parcelle `parcel` déposés dans la cellule `to`.
+#[derive(Debug, Clone, Copy)]
+struct Arrival {
+    to: u32,
+    parcel: u32,
+    amount: f64,
+}
 
 /// Diffusion scalaire conservative : chaque cellule envoie `q` de sa valeur, réparti sur ses voisins.
 pub fn spread(graph: &Graph, values: &[f64], q: f64) -> Vec<f64> {
@@ -28,59 +37,77 @@ pub fn spread(graph: &Graph, values: &[f64], q: f64) -> Vec<f64> {
     next
 }
 
-/// Déplace une fraction de chaque cohorte vers les cellules voisines et lointaines ; biomasse conservée.
-/// Seules les cellules en phase (`(cell + tick) % period == 0`) envoient des départs, sur un pas `span`.
+/// Déplace une fraction de chaque cohorte. Seules les cellules en phase (`(cell + tick) % period == 0`) envoient.
 pub fn disperse_cohorts(graph: &Graph, cohorts: &mut [Vec<Cohort>], seed: u64, tick: u64, span: f64, period: u64) {
-    let mut arrivals: Vec<(usize, Cohort)> = Vec::new();
+    let mut parcels: Vec<Cohort> = Vec::new();
+    let mut arrivals: Vec<Arrival> = Vec::new();
     for (cell, own) in cohorts.iter_mut().enumerate() {
         if !(cell as u64 + tick).is_multiple_of(period) {
             continue;
         }
         for (slot, cohort) in own.iter_mut().enumerate() {
-            if let Some(parcel) = departure(cohort, span) {
-                route(graph, cell, parcel, (seed, tick, slot as u32), &mut arrivals);
+            let out = departure(cohort, span);
+            if out > 0.0 {
+                let parcel = parcels.len() as u32;
+                parcels.push(Cohort { n: out, ..*cohort });
+                route(graph, cell, parcel, out, (seed, tick, slot as u32), &mut arrivals);
             }
         }
     }
-    for (cell, parcel) in arrivals {
-        insert(&mut cohorts[cell], parcel);
+    for arrival in arrivals {
+        let template = parcels[arrival.parcel as usize];
+        insert(
+            &mut cohorts[arrival.to as usize],
+            Cohort {
+                n: arrival.amount,
+                ..template
+            },
+        );
     }
     for cell in cohorts.iter_mut() {
         fuse_to_cap(cell);
     }
 }
 
-/// Retire de la cohorte source la fraction qui part ; renvoie la cohorte partante, ou `None` si rien ne bouge.
-fn departure(cohort: &mut Cohort, span: f64) -> Option<Cohort> {
+/// Retire de la cohorte source la fraction qui part ; renvoie l'effectif partant (0 si rien ne bouge).
+fn departure(cohort: &mut Cohort, span: f64) -> f64 {
     let q = (mobility_rate(&cohort.genome) * span).min(MAX_FRACTION);
     let out = cohort.n * q;
-    if out <= 0.0 {
-        return None;
+    if out > 0.0 {
+        cohort.n -= out;
     }
-    cohort.n -= out;
-    Some(Cohort { n: out, ..*cohort })
+    out.max(0.0)
 }
 
 fn route(
     graph: &Graph,
     cell: usize,
-    parcel: Cohort,
+    parcel: u32,
+    out: f64,
     (seed, tick, slot): (u64, u64, u32),
-    arrivals: &mut Vec<(usize, Cohort)>,
+    arrivals: &mut Vec<Arrival>,
 ) {
     let neighbours = graph.neighbors(cell);
-    let long = parcel.n * LONG_SHARE;
-    let local = parcel.n - long;
-    if neighbours.is_empty() {
-        arrivals.push((cell, Cohort { n: local, ..parcel }));
+    let long = out * LONG_SHARE;
+    let local = out - long;
+    let to = if neighbours.is_empty() {
+        cell
     } else {
-        let share = local / neighbours.len() as f64;
-        for &j in neighbours {
-            arrivals.push((j as usize, Cohort { n: share, ..parcel }));
-        }
-    }
+        let draw = unit_f64(seed, tick, cell as u32, 0x2000 + slot);
+        let pick = ((draw * neighbours.len() as f64) as usize).min(neighbours.len() - 1);
+        neighbours[pick] as usize
+    };
+    arrivals.push(Arrival {
+        to: to as u32,
+        parcel,
+        amount: local,
+    });
     let end = walk(graph, cell, seed, tick, slot);
-    arrivals.push((end, Cohort { n: long, ..parcel }));
+    arrivals.push(Arrival {
+        to: end as u32,
+        parcel,
+        amount: long,
+    });
 }
 
 /// Saut long : marche aléatoire de L pas, L ≈ 1/u (queue en L⁻²), plafonnée.
