@@ -58,7 +58,7 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 - [ ] E1.S6 — start/stop/restart, bancs `cargo bench`, CI verte — VERIFY: `./start.sh && ./stop.sh && gh run list -L1`
 
 ### E2 — La planète
-- [ ] E2.S1 — Genèse G0-G8 (plaques, frontières, GDH1, isostasie, érosion, niveau de la mer) — VERIFY: `cargo test genesis`
+- [x] E2.S1 — Genèse G0-G8 (plaques, frontières, GDH1, isostasie, érosion, niveau de la mer) — VERIFY: `cargo test genesis`
 - [ ] E2.S2 — Corps réels : planets.json + MNT réduits (Terre, Mars, Vénus, Lune) — VERIFY: `cargo test presets && ./scripts/dem/check.sh`
 - [ ] E2.S3 — Rendu complet du globe : océan, relief, atmosphère, nuages, terminateur — VERIFY: revue design Opus + e2e `globe`
 - [ ] E2.S4 — Carte 2D à calques + bascule par morphing, mêmes couleurs — VERIFY: `pnpm test:e2e --grep map-switch`
