@@ -14,3 +14,5 @@ pub const BOLTZMANN_EV: f64 = 8.617_333_262e-5;
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 /// Secondes dans une année julienne.
 pub const SECONDS_PER_YEAR: f64 = 365.25 * SECONDS_PER_DAY;
+/// Capacité thermique volumique de l'eau, J m⁻³ K⁻¹ (ρ·c, équivalent eau des capacités de surface).
+pub const WATER_VOLUMETRIC_HEAT_CAPACITY: f64 = 4.18e6;

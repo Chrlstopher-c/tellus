@@ -25,6 +25,12 @@ pub struct Body {
     pub orbital_period_days: f64,
     pub sidereal_rotation_hours: f64,
     pub solar_day_hours: f64,
+    /// Température moyenne de surface observée, K (cible de calibration de l'effet de serre).
+    pub surface_temp_mean_k: Option<f64>,
+    /// Pression de surface, bar (entrée de la loi τ(P, CO₂) des mondes générés).
+    pub surface_pressure_bar: Option<f64>,
+    /// Fraction molaire de CO₂ de l'atmosphère (référence de la loi de CO₂), sans dimension.
+    pub co2_fraction: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -83,6 +89,12 @@ impl Body {
             orbital_period_days: number(entry, id, "orbital_period_days")?,
             sidereal_rotation_hours: number(entry, id, "sidereal_rotation_hours")?,
             solar_day_hours: number(entry, id, "solar_day_hours")?,
+            surface_temp_mean_k: entry.get("surface_temp_mean_k").and_then(Value::as_f64),
+            surface_pressure_bar: entry.get("surface_pressure_bar").and_then(Value::as_f64),
+            co2_fraction: entry
+                .get("atmosphere_molar_fractions")
+                .and_then(|fractions| fractions.get("CO2"))
+                .and_then(Value::as_f64),
         })
     }
 }
