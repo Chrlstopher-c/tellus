@@ -9,7 +9,7 @@ import { rendererLogger } from '../shared/logger';
 import { SPEEDS, type SpeedId } from '../time-control/speeds';
 import type { WorldConfig } from '../world-setup/world-config';
 
-export const WORLD_LEVEL = 7;
+export const WORLD_LEVEL = 6;
 
 export interface SessionState {
   phase: 'setup' | 'creating' | 'running' | 'error';
