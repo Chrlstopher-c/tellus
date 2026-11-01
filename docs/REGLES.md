@@ -36,7 +36,8 @@ Les valeurs marquées [M] dans les recherches sont à vérifier sur la source av
 
 ## 2. Grille (domaine `shared::grid`)
 - Icosaèdre géodésique, simulation sur les duaux (hexagones + 12 pentagones). `N = 10·4^L + 2`.
-  **L7 = 163 842 cellules (~56 km) par défaut**, L6 = 40 962 en mode léger.
+  **L6 = 40 962 cellules (~112 km) par défaut au MVP** (le processeur est le facteur limitant ; la finesse visuelle
+  vient du rendu), L7 = 163 842 en option.
 - Voisinage CSR, aires exactes, 3 itérations de Lloyd. Cellules ordonnées sur une courbe de remplissage (localité).
 - Pour le rendu : table `texel → (3 cellules, 2 barycentriques)` calculée une fois ; les champs par cellule sont envoyés
   en textures de données, interpolées dans le shader.
@@ -73,6 +74,7 @@ d'Airy → fBm + crêtes + érosion (stream power, thermique) → niveau de la m
 6. Le CO₂ vient du domaine matière ; le climat ne le possède pas.
 - Tests : V-01 à V-30 de `climat.md` (insolation 340 W/m² TOA, T̄ 287 ± 1,5 K, 2×CO₂ = 3,71 W/m², hystérésis de la
   glace, P̄ 1 000 ± 100 mm/an, déserts vers 30°, Köppen ≥ 55 % d'accord). V-14 (Vénus) devient une réussite grâce au τ calibré.
+  V-17 corrigé : une boule de neige reste gelée à S0 ; elle fond quand le CO₂ s'accumule (×350 → fonte < 2 000 ans).
 
 ## 6. Matière (domaine `matter`) — détail : `recherche/nutriments.md`
 - Boîtes couplées par cellule (sol, végétation, litière, pools RothC, océan de surface) + réservoirs globaux
@@ -129,7 +131,7 @@ extinction de masse, première espèce terrestre, record de taille, intervention
 - Budget : 60 i/s en 1080p sur la machine cible, rendu jamais bloqué par la simulation.
 
 ## 11. Performance
-- Simulation : ≥ 4 ticks/s à L7 à toutes les vitesses (régime adapté), mesuré par `cargo bench`.
+- Simulation : ≥ 4 ticks/s à L6 à toutes les vitesses (régime adapté), mesuré par `cargo bench` ; L7 en option.
 - Rendu : ≥ 60 i/s, temps JS par image < 4 ms, transfert d'instantané < 5 ms.
 
 ## 12. Contrat d'intégration entre domaines
