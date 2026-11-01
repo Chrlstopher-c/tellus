@@ -33,7 +33,11 @@ pub struct Mesh {
     edge_offsets: Vec<u32>,
     neighbor_indices: Vec<u32>,
     edge_weights: Vec<f64>,
+    edge_flow: Vec<Vec3>,
+    east: Vec<Vec3>,
+    north: Vec<Vec3>,
     sin_lat: Vec<f64>,
+    radius_m: f64,
 }
 
 impl Mesh {
@@ -51,6 +55,8 @@ impl Mesh {
             incident: &incident,
         };
         let edge_weights = edge_weights(&edge_offsets, &neighbor_indices, &ctx)?;
+        let edge_flow = edge_flows(&edge_offsets, &neighbor_indices, &edge_weights, centers);
+        let (east, north) = local_frames(centers);
         let radius = grid.radius_m();
         let area_sr = grid.areas_m2().iter().map(|a| a / (radius * radius)).collect();
         let sin_lat = centers.iter().map(|c| c[1]).collect();
@@ -59,12 +65,37 @@ impl Mesh {
             edge_offsets,
             neighbor_indices,
             edge_weights,
+            edge_flow,
+            east,
+            north,
             sin_lat,
+            radius_m: radius,
         })
     }
 
     pub fn cell_count(&self) -> usize {
         self.area_sr.len()
+    }
+
+    /// Rayon de la sphère, m.
+    pub fn radius_m(&self) -> f64 {
+        self.radius_m
+    }
+
+    /// Flux géométrique `ℓ·n` par arête orientée (radians), `n` tangent sortant de la cellule source.
+    /// Antisymétrique exactement : `edge_flow` de (i→j) = −`edge_flow` de (j→i).
+    pub fn edge_flow(&self) -> &[Vec3] {
+        &self.edge_flow
+    }
+
+    /// Vecteur unitaire vers l'est de chaque cellule (nul au pôle exact).
+    pub fn east(&self) -> &[Vec3] {
+        &self.east
+    }
+
+    /// Vecteur unitaire vers le nord de chaque cellule (nul au pôle exact).
+    pub fn north(&self) -> &[Vec3] {
+        &self.north
     }
 
     /// Aire de chaque cellule, stéradians (somme 4π).
@@ -206,4 +237,57 @@ fn norm(a: Vec3) -> f64 {
 
 fn normalize(a: Vec3) -> Vec3 {
     scale(a, 1.0 / norm(a))
+}
+
+fn safe_normalize(a: Vec3) -> Vec3 {
+    let length = norm(a);
+    if length > 1e-12 {
+        scale(a, 1.0 / length)
+    } else {
+        [0.0; 3]
+    }
+}
+
+fn add(a: Vec3, b: Vec3) -> Vec3 {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+/// Flux `ℓ·n` par arête orientée. Le calcul se fait dans l'ordre canonique (cellule basse → haute) puis le signe
+/// est appliqué : l'antisymétrie est exacte, donc la vapeur transportée est conservée au bit près.
+fn edge_flows(offsets: &[u32], neighbors: &[u32], weights: &[f64], centers: &[Vec3]) -> Vec<Vec3> {
+    let mut flows = Vec::with_capacity(neighbors.len());
+    for (cell, window) in offsets.windows(2).enumerate() {
+        for k in window[0] as usize..window[1] as usize {
+            let other = neighbors[k] as usize;
+            let (low, high, sign) = if cell < other {
+                (cell, other, 1.0)
+            } else {
+                (other, cell, -1.0)
+            };
+            let length = weights[k] * angle(centers[cell], centers[other]);
+            let normal = chord_normal(centers[low], centers[high]);
+            flows.push(scale(normal, sign * length));
+        }
+    }
+    flows
+}
+
+/// Normale unitaire de l'arête duale entre `low` et `high` : la corde, projetée sur le plan tangent au milieu.
+fn chord_normal(low: Vec3, high: Vec3) -> Vec3 {
+    let mid = normalize(add(low, high));
+    let chord = sub(high, low);
+    safe_normalize(sub(chord, scale(mid, dot(chord, mid))))
+}
+
+/// Repères locaux (est, nord) : est = c × ŷ, nord = ŷ − sinφ·c, normalisés ; nuls au pôle exact.
+fn local_frames(centers: &[Vec3]) -> (Vec<Vec3>, Vec<Vec3>) {
+    let pole = [0.0, 1.0, 0.0];
+    centers
+        .iter()
+        .map(|c| {
+            let east = safe_normalize(cross(*c, pole));
+            let north = safe_normalize(sub(pole, scale(*c, c[1])));
+            (east, north)
+        })
+        .unzip()
 }

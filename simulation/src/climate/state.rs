@@ -1,6 +1,7 @@
 //! État climatique et contrat d'intégration (REGLES §12) : `init`, `step`, régimes (§1) et équilibre borné.
 //! Le champ `ClimateState` possède son modèle (géométrie et paramètres figés) derrière un `Arc`.
-//! Les champs hydrologiques (précipitations, vents, humidité du sol) sont réservés et restent à zéro.
+//! Les champs hydrologiques (précipitations, vents, humidité du sol, glace de mer) sont diagnostiqués par `hydro`,
+//! recalculés hors du chemin critique (intervalle de temps simulé ou dérive de T̄), et restent nuls sans eau liquide.
 
 #[cfg(test)]
 mod tests;
@@ -9,6 +10,7 @@ use super::body::Body;
 use super::ebm::{self, Forcing, SubstepReport};
 use super::error::ClimateError;
 use super::greenhouse::{calibrate_tau, grey_surface_temp_k, tau_for_world, GreenhouseError};
+use super::hydro::{self, HydroModel, HydroReport};
 use super::ice::budyko_free_albedo;
 use super::insolation::{build_table, InsolationTable, MONTHS};
 use super::mesh::Mesh;
@@ -58,6 +60,8 @@ pub struct ClimateConfig {
     /// Rétroaction glace-albédo active (vrai pour la Terre, faux pour les corps sans glace d'eau).
     pub ice_feedback: bool,
     pub diffusivity: f64,
+    /// Cycle de l'eau diagnostique (vents, vapeur, précipitations, sol) : vrai pour les mondes à eau liquide.
+    pub hydrology: bool,
 }
 
 impl ClimateConfig {
@@ -67,6 +71,7 @@ impl ClimateConfig {
             solar_scale: 1.0,
             ice_feedback: true,
             diffusivity: DIFFUSIVITY_W_M2_K,
+            hydrology: true,
         }
     }
 
@@ -82,7 +87,10 @@ impl ClimateConfig {
     /// Monde généré : τ = f(P)·g(CO₂) avec la pression totale et la concentration de départ.
     pub fn for_world(pressure_bar: f64, co2_ppm: f64) -> Self {
         let tau_ref = tau_for_world(pressure_bar, co2_ppm * 1e-6);
-        Self::grey(tau_ref, co2_ppm)
+        Self {
+            hydrology: true,
+            ..Self::grey(tau_ref, co2_ppm)
+        }
     }
 
     fn grey(tau_ref: f64, co2_ref_ppm: f64) -> Self {
@@ -91,6 +99,7 @@ impl ClimateConfig {
             solar_scale: 1.0,
             ice_feedback: false,
             diffusivity: DIFFUSIVITY_W_M2_K,
+            hydrology: false,
         }
     }
 }
@@ -123,6 +132,8 @@ pub(super) struct ClimateModel {
     pub(super) insolation_monthly: Vec<Vec<f64>>,
     pub(super) insolation_annual: Vec<f64>,
     pub(super) year_s: f64,
+    /// Cycle de l'eau, présent si la configuration le demande.
+    pub(super) hydro: Option<HydroModel>,
 }
 
 /// Champs évolutifs. Températures et fractions par cellule ; flux diagnostiqués au dernier pas.
@@ -139,13 +150,20 @@ pub struct ClimateState {
     /// Flux absorbé et OLR évalués à T^n du dernier pas, W m⁻².
     pub absorbed_w_m2: Vec<f64>,
     pub olr_w_m2: Vec<f64>,
-    /// Réservés au pas hydrologique : toujours nuls ici.
+    /// Précipitations annuelles moyennes, mm an⁻¹ (diagnostic `hydro`).
     pub precip_mm_yr: Vec<f64>,
+    /// Vent de surface moyen annuel, m s⁻¹ (est et nord).
     pub wind_u: Vec<f64>,
     pub wind_v: Vec<f64>,
+    /// Humidité du sol en seau, fraction de la capacité (0-1) ; nulle sur les océans.
     pub soil_moisture: Vec<f64>,
+    /// Fraction de glace de mer (océans seulement, depuis la température de surface).
+    pub sea_ice_fraction: Vec<f64>,
     /// Temps écoulé depuis l'initialisation, s.
     pub time_s: f64,
+    /// Instant et température moyenne du dernier diagnostic hydrologique (déclenchement du recalcul).
+    pub(super) hydro_time_s: f64,
+    pub(super) hydro_mean_c: f64,
 }
 
 impl ClimateState {
@@ -185,6 +203,8 @@ pub struct ClimateReport {
     /// Résolutions qui n'ont pas atteint le résidu visé avant le plafond d'itérations.
     pub cg_cap_hits: u32,
     pub equilibrium: Option<EquilibriumReport>,
+    /// Diagnostic hydrologique recalculé pendant cet appel, s'il y a eu recalcul.
+    pub hydro: Option<HydroReport>,
 }
 
 impl ClimateReport {
@@ -199,6 +219,7 @@ impl ClimateReport {
             clamped_cells: 0,
             cg_cap_hits: 0,
             equilibrium: None,
+            hydro: None,
         }
     }
 
@@ -251,12 +272,14 @@ pub fn step(
         co2_ppm: inputs.co2_ppm,
         free_albedo: inputs.surface_albedo.unwrap_or(&model.free_albedo),
     };
-    match regime {
-        Regime::Fine | Regime::Annual => seasonal_step(state, &run, dt_years, regime),
-        Regime::Secular => annual_mean_step(state, &run, dt_years),
-        Regime::Geological => equilibrium(state, &run),
-        Regime::Frozen => Err(ClimateError::FrozenRegime),
-    }
+    let mut report = match regime {
+        Regime::Fine | Regime::Annual => seasonal_step(state, &run, dt_years, regime)?,
+        Regime::Secular => annual_mean_step(state, &run, dt_years)?,
+        Regime::Geological => equilibrium(state, &run)?,
+        Regime::Frozen => return Err(ClimateError::FrozenRegime),
+    };
+    report.hydro = hydro::refresh_if_due(&model, state);
+    Ok(report)
 }
 
 /// Paramètres communs d'un appel à `step`.
@@ -378,6 +401,9 @@ fn assemble(
         .collect();
     let free_albedo = free_albedo_field(&mesh, config.law, body);
     let (insolation_monthly, insolation_annual) = insolation_fields(&mesh, table, config.solar_scale);
+    let hydro = config
+        .hydrology
+        .then(|| HydroModel::new(&mesh, body, surface, &insolation_monthly));
     ClimateModel {
         mesh,
         law: config.law,
@@ -390,6 +416,7 @@ fn assemble(
         insolation_monthly,
         insolation_annual,
         year_s: body.orbital_period_days * SECONDS_PER_DAY,
+        hydro,
     }
 }
 
@@ -438,9 +465,13 @@ fn initial_state(model: Arc<ClimateModel>, body: &Body, config: &ClimateConfig) 
         wind_u: vec![0.0; n],
         wind_v: vec![0.0; n],
         soil_moisture: vec![0.0; n],
+        sea_ice_fraction: vec![0.0; n],
         time_s: 0.0,
+        hydro_time_s: f64::NEG_INFINITY,
+        hydro_mean_c: f64::NAN,
     };
     let model = Arc::clone(&state.model);
     ebm::diagnose(&model, &mut state);
+    hydro::refresh_if_due(&model, &mut state);
     state
 }
