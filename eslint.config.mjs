@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['out/**', 'dist/**', 'node_modules/**', 'logs/**', 'coverage/**', 'mockup/**', 'simulation/**', 'docs/**'],
+    ignores: ['.claude/**', 'out/**', 'dist/**', 'node_modules/**', 'logs/**', 'coverage/**', 'mockup/**', 'simulation/**', 'docs/**'],
   },
   js.configs.recommended,
   tseslint.configs.recommended,
