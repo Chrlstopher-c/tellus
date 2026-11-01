@@ -10,7 +10,9 @@ export default defineConfig({
   main: {
     build: {
       outDir: resolve(ROOT, 'out/main'),
-      rollupOptions: { input: { index: resolve(ROOT, 'desktop/main.ts') } },
+      rollupOptions: {
+        input: { index: resolve(ROOT, 'desktop/main.ts'), sim: resolve(ROOT, 'desktop/sim-process.ts') },
+      },
     },
   },
   preload: {

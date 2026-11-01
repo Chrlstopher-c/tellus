@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { probeRenderer, type RendererKind } from './shared/renderer-probe';
+import { SimDebugLine } from './sim-bridge/sim-debug-line';
 
 export function App(): ReactElement {
   const [renderer, setRenderer] = useState<RendererKind | null>(null);
@@ -19,6 +20,7 @@ export function App(): ReactElement {
     <main className="tellus-screen">
       <p className="tellus-title">Tellus</p>
       <p className="tellus-debug">moteur : {renderer ?? 'détection'}</p>
+      <SimDebugLine />
     </main>
   );
 }

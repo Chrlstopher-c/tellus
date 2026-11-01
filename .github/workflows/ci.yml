@@ -12,6 +12,11 @@ jobs:
       - name: Scripts shell
         run: for f in *.sh; do bash -n "$f"; done && shellcheck *.sh
 
+      - uses: dtolnay/rust-toolchain@stable
+        if: hashFiles('simulation/Cargo.toml') != ''
+        with:
+          components: clippy, rustfmt
+
       - uses: pnpm/action-setup@v4
         if: hashFiles('package.json') != ''
       - uses: actions/setup-node@v4
@@ -28,14 +33,11 @@ jobs:
           pnpm test --run
           pnpm build
 
-      - uses: dtolnay/rust-toolchain@stable
-        if: hashFiles('simulation/Cargo.toml') != ''
-        with:
-          components: clippy, rustfmt
       - name: Simulation — fmt, clippy, tests
         if: hashFiles('simulation/Cargo.toml') != ''
         working-directory: simulation
         run: |
           cargo fmt --check
-          cargo clippy -- -D warnings
+          cargo clippy --all-targets -- -D warnings
+          cargo clippy --all-targets --features node -- -D warnings
           cargo test
