@@ -1,17 +1,23 @@
+// Client de simulation côté fenêtre : requêtes à réponse + abonnement aux trames et événements poussés.
 import { rendererLogger } from '../shared/logger';
-import type { SimCommand, SimReply, SimResult } from './protocol';
+import type {
+  ChronicleEvent, CreateRequest, SimCommand, SimFrame, SimMessage, SimResult, SpeedId, WorldInfo,
+} from './protocol';
 
 /** Sous-ensemble de MessagePort utilisé par le client (permet un port simulé en test). */
 export interface SimPort {
   postMessage(message: SimCommand): void;
-  onmessage: ((event: MessageEvent<SimReply>) => void) | null;
+  onmessage: ((event: MessageEvent<SimMessage>) => void) | null;
   close(): void;
 }
 
 export interface SimClient {
-  createWorld(seed: number, level: number): Promise<number>;
-  step(dtYears: number): Promise<number>;
-  snapshotElevation(): Promise<Float32Array>;
+  createWorld(request: CreateRequest): Promise<WorldInfo>;
+  control(playing: boolean, speed: SpeedId): Promise<void>;
+  inspect(cell: number): Promise<string>;
+  intervene(power: string, cell: number, magnitude: number): Promise<string>;
+  onFrame(listener: (frame: SimFrame) => void): () => void;
+  onEvents(listener: (events: readonly ChronicleEvent[]) => void): () => void;
   dispose(): void;
 }
 
@@ -23,83 +29,75 @@ interface Pending {
   readonly reject: (error: Error) => void;
 }
 
-interface Channel {
-  request(body: CommandBody): Promise<SimResult>;
-  close(): void;
+interface Hub {
+  readonly pending: Map<number, Pending>;
+  readonly frames: Set<(frame: SimFrame) => void>;
+  readonly events: Set<(events: readonly ChronicleEvent[]) => void>;
 }
 
 export function createSimClient(port: SimPort): SimClient {
-  const channel = createChannel(port);
-  return {
-    createWorld: async (seed: number, level: number): Promise<number> =>
-      cellsOf(await channel.request({ type: 'create', seed, level })),
-    step: async (dtYears: number): Promise<number> => timeOf(await channel.request({ type: 'step', dtYears })),
-    snapshotElevation: async (): Promise<Float32Array> => valuesOf(await channel.request({ type: 'snapshot' })),
-    dispose: (): void => channel.close(),
+  const hub: Hub = { pending: new Map(), frames: new Set(), events: new Set() };
+  port.onmessage = (event: MessageEvent<SimMessage>): void => dispatch(hub, event.data);
+  const request = makeRequester(port, hub);
+  const subscribe = <T>(set: Set<T>, listener: T): (() => void) => {
+    set.add(listener);
+    return () => set.delete(listener);
   };
-}
-
-function createChannel(port: SimPort): Channel {
-  const pending = new Map<number, Pending>();
-  let nextId = 1;
-  port.onmessage = (event: MessageEvent<SimReply>): void => settle(pending, event.data);
   return {
-    request(body: CommandBody): Promise<SimResult> {
-      const id = nextId;
-      nextId += 1;
-      return new Promise<SimResult>((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        try {
-          port.postMessage({ ...body, id });
-        } catch (error: unknown) {
-          pending.delete(id);
-          rendererLogger.error({ err: error, command: body.type }, 'envoi de commande à la simulation impossible');
-          reject(toError(error));
-        }
-      });
-    },
-    close(): void {
+    createWorld: async (r) => expect(await request({ type: 'create', request: r }), 'create').world,
+    control: async (playing, speed) => { expect(await request({ type: 'control', playing, speed }), 'control'); },
+    inspect: async (cell) => expect(await request({ type: 'inspect', cell }), 'inspect').json,
+    intervene: async (power, cell, magnitude) =>
+      expect(await request({ type: 'intervene', power, cell, magnitude }), 'intervene').json,
+    onFrame: (listener) => subscribe(hub.frames, listener),
+    onEvents: (listener) => subscribe(hub.events, listener),
+    dispose: () => {
       port.close();
-      rejectAll(pending, 'client de simulation fermé');
+      for (const p of hub.pending.values()) p.reject(new Error('client de simulation fermé'));
+      hub.pending.clear();
     },
   };
 }
 
-function settle(pending: Map<number, Pending>, reply: SimReply): void {
-  const entry = pending.get(reply.id);
-  if (!entry) {
-    rendererLogger.warn({ id: reply.id }, 'réponse de simulation sans requête en attente');
+function makeRequester(port: SimPort, hub: Hub): (body: CommandBody) => Promise<SimResult> {
+  let nextId = 1;
+  return (body) => new Promise<SimResult>((resolve, reject) => {
+    const id = nextId++;
+    hub.pending.set(id, { resolve, reject });
+    try {
+      port.postMessage({ ...body, id });
+    } catch (error: unknown) {
+      hub.pending.delete(id);
+      rendererLogger.error({ err: error, command: body.type }, 'envoi de commande à la simulation impossible');
+      reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+}
+
+function dispatch(hub: Hub, message: SimMessage): void {
+  if (message.kind === 'frame') {
+    for (const listener of hub.frames) listener(message);
     return;
   }
-  pending.delete(reply.id);
-  if (reply.ok) entry.resolve(reply.result);
-  else entry.reject(new Error(reply.error));
+  if (message.kind === 'events') {
+    for (const listener of hub.events) listener(message.events);
+    return;
+  }
+  const entry = hub.pending.get(message.id);
+  if (!entry) {
+    rendererLogger.warn({ id: message.id }, 'réponse de simulation sans requête en attente');
+    return;
+  }
+  hub.pending.delete(message.id);
+  if (message.ok) entry.resolve(message.result);
+  else entry.reject(new Error(message.error));
 }
 
-function rejectAll(pending: Map<number, Pending>, reason: string): void {
-  for (const entry of pending.values()) entry.reject(new Error(reason));
-  pending.clear();
+function expect<K extends SimResult['type']>(result: SimResult, type: K): Extract<SimResult, { type: K }> {
+  if (!isType(result, type)) throw new Error(`réponse « ${result.type} » reçue, « ${type} » attendue`);
+  return result;
 }
 
-function cellsOf(result: SimResult): number {
-  if (result.type !== 'create') throw unexpectedResult(result, 'create');
-  return result.cells;
-}
-
-function timeOf(result: SimResult): number {
-  if (result.type !== 'step') throw unexpectedResult(result, 'step');
-  return result.time;
-}
-
-function valuesOf(result: SimResult): Float32Array {
-  if (result.type !== 'snapshot') throw unexpectedResult(result, 'snapshot');
-  return result.values;
-}
-
-function unexpectedResult(result: SimResult, expected: SimResult['type']): Error {
-  return new Error(`réponse de simulation « ${result.type} » reçue, « ${expected} » attendue`);
-}
-
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
+function isType<K extends SimResult['type']>(r: SimResult, type: K): r is Extract<SimResult, { type: K }> {
+  return r.type === type;
 }
