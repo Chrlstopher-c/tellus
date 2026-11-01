@@ -15,7 +15,7 @@ simplifié (EBM, LPJ, Madingley). Référence visuelle validée : `mockup/` (apr
 
 ## Voie retenue
 - Desktop **Electron 45** (WebGPU confirmé sur la machine, sans flag) ; mode deux écrans par une seconde fenêtre.
-- Rendu **three.js 0.187 `WebGPURenderer` + TSL**, repli WebGL2 automatique.
+- Rendu **three.js 0.187 en WebGL2**, shaders GLSL de la maquette validée.
 - Simulation **Rust natif (napi-rs) dans un `utilityProcess`**, parallélisée avec rayon. Rust stable, testable avec
   `cargo test`, 2-3× plus rapide que wasm, sans nightly ni COOP/COEP. Instantanés envoyés aux fenêtres par
   `MessagePort` à 2-20 Hz ; le rendu interpole à 60 i/s. Calcul GPU seulement si un banc échoue.
@@ -24,7 +24,7 @@ simplifié (EBM, LPJ, Madingley). Référence visuelle validée : `mockup/` (apr
 
 ## Réussite
 1. Globe et carte jugés beaux par Chris, sans incohérence visuelle entre les deux vues.
-2. ≥ 60 i/s en 1080p à toutes les vitesses ; simulation ≥ 4 ticks/s à 163 842 cellules.
+2. ≥ 60 i/s en 1080p à toutes les vitesses ; simulation ≥ 4 ticks/s à 40 962 cellules (L6).
 3. Sur une Terre jeune, la vie émerge seule en 0,5-2 Ga simulés ; ensuite les écosystèmes tiennent sans effondrement
    ni explosion absurde (populations bornées, pyramide trophique plausible).
 
@@ -43,7 +43,9 @@ Civilisations (V2, prévues dans l'architecture), technologie (V3), tectonique e
 - 2026-11-01 — Licence MIT, dépôt public.
 - 2026-11-01 — Temps multi-échelle (1 jour/s → 10 Ma/s) : la vie émerge sur des milliards d'années, rien n'est ensemencé.
 - 2026-11-01 — Simulation en Rust natif napi-rs (et non wasm) : stable, plus rapide, pas de nightly — recherche socle.
-- 2026-11-01 — Grille géodésique icosaédrique L7 (163 842 cellules) ; tectonique figée au MVP.
+- 2026-11-01 — Grille géodésique icosaédrique, L6 (40 962 cellules) par défaut, L7 en option ; tectonique figée au MVP.
+- 2026-11-01 — Rendu WebGL2 avec les shaders validés de la maquette (et non TSL/WebGPU) : la simulation est sur CPU,
+  WebGPU n'apporte rien au MVP et une réécriture risquerait le rendu validé.
 - 2026-11-01 — Effet de serre calibré par corps réel (Vénus 737 K atteint) plutôt qu'un modèle gris qui échoue.
 
 ## Plan
