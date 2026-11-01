@@ -14,7 +14,8 @@ from centers import load_centers
 BODIES = ("earth", "mars", "venus", "moon", "mercury")
 EARTH_LAND_TARGET = 0.29
 EARTH_LAND_TOLERANCE = 0.03
-EARTH_MAX_MIN_M = (5000.0, -8000.0)
+# Moyenne par aire de cellule : les fosses étroites s'adoucissent avec la taille de la maille (~112 km en L6).
+EARTH_MAX_MIN_M = {6: (5000.0, -7000.0), 7: (5000.0, -8000.0)}
 MARS_OLYMPUS_MIN_M = 15000.0
 PLAUSIBLE_ABS_M = 30000.0
 
@@ -52,7 +53,8 @@ def _check_earth(field: Field, level: int) -> list[str]:
     land = float(np.sum(field.weights * (field.values > 0.0)))
     if abs(land - EARTH_LAND_TARGET) > EARTH_LAND_TOLERANCE:
         failures.append(f"Terre L{level} : fraction > 0 m = {land:.3f}, attendu 0,29 ± 0,03")
-    if field.values.max() <= EARTH_MAX_MIN_M[0] or field.values.min() >= EARTH_MAX_MIN_M[1]:
+    top, bottom = EARTH_MAX_MIN_M.get(level, (5000.0, -8000.0))
+    if field.values.max() <= top or field.values.min() >= bottom:
         failures.append(f"Terre L{level} : extrêmes {field.values.min():.0f} / {field.values.max():.0f} m")
     logger.info(f"Terre L{level} : fraction de terres {land:.3f}")
     return failures
