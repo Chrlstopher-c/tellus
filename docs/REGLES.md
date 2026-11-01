@@ -131,3 +131,22 @@ extinction de masse, première espèce terrestre, record de taille, intervention
 ## 11. Performance
 - Simulation : ≥ 4 ticks/s à L7 à toutes les vitesses (régime adapté), mesuré par `cargo bench`.
 - Rendu : ≥ 60 i/s, temps JS par image < 4 ms, transfert d'instantané < 5 ms.
+
+## 12. Contrat d'intégration entre domaines
+Chaque domaine de `simulation/src/<domaine>/` expose la même forme, sans connaître les autres domaines :
+```rust
+pub struct <Domaine>State { /* SoA : Vec<f32>/Vec<f64> indexés par cellule, + globaux */ }
+pub struct <Domaine>Inputs<'a> { /* tranches empruntées produites par d'autres domaines */ }
+pub fn init(grid: &Grid, planet: &Planet /* ou paramètres */, ...) -> <Domaine>State;
+pub fn step(state: &mut <Domaine>State, grid: &Grid, inputs: &<Domaine>Inputs, dt_years: f64,
+            regime: Regime, tick: u64, seed: u64) -> <Domaine>Report;
+```
+- Les échanges passent uniquement par ces `Inputs` (tranches `&[f32]` par cellule) : aucun domaine n'importe l'état
+  interne d'un autre. L'orchestrateur `world/` (écrit après les domaines) compose les appels dans cet ordre par tick :
+  `climate → matter → life → god (interventions en file) → chronicle`.
+- Champs échangés (noms fixes, unités SI sauf mention) :
+  - climat → `temperature_c`, `precip_mm_yr`, `insolation_w_m2`, `ice_fraction`, `wind_u`, `wind_v`, `soil_moisture`(0-1)
+  - matière → `co2_ppm` (global), `o2_fraction` (global), `npp_cap_gc_m2_yr`, `n_avail`, `p_avail` (0-1), `nutrient_ocean` (0-1)
+  - vivant → `veg_cover` (0-1), `surface_albedo`, `biomass_gc_m2`, `npp_realized_gc_m2_yr`, `photosynth_present` (bool global)
+  - genèse → `elevation_m`, `is_ocean`, `crust`, `plate_id`
+- `Report` : quelques scalaires (moyennes, stocks totaux, compteurs de clamp) pour les bilans et la chronique.
