@@ -150,3 +150,20 @@ pub fn step(state: &mut <Domaine>State, grid: &Grid, inputs: &<Domaine>Inputs, d
   - vivant → `veg_cover` (0-1), `surface_albedo`, `biomass_gc_m2`, `npp_realized_gc_m2_yr`, `photosynth_present` (bool global)
   - genèse → `elevation_m`, `is_ocean`, `crust`, `plate_id`
 - `Report` : quelques scalaires (moyennes, stocks totaux, compteurs de clamp) pour les bilans et la chronique.
+
+## 13. Pont v2 (simulation ↔ fenêtres)
+Le `utilityProcess` possède le monde et sa boucle ; les fenêtres envoient des commandes et reçoivent des trames.
+- **Exports napi** (`simulation/src/bridge/`) :
+  `create_world(config_json: String) -> String` (JSON : `{cells, seed, name, lookupWidth, lookupHeight}`),
+  `lookup_ids() -> Float32Array` (largeur×hauteur×4, ids en flottants exacts, A = 0),
+  `lookup_weights() -> Float32Array` (largeur×hauteur×2),
+  `step(dt_years: f64) -> f64` (temps simulé total ; régimes choisis par `clock::regime`),
+  `snapshot() -> Float32Array` (cellules×4 : altitude m, température °C, précipitations mm/an, couvert végétal 0-1),
+  `vitals() -> String` (JSON : o2Percent, co2Ppm, meanTempC, species, biomassGtC, era),
+  `inspect(cell: u32) -> String` (JSON `RegionDetail` de `interface/src/inspector/region.ts`),
+  `intervene(json: String) -> String` (`{power, cell, magnitude}` → événement journalisé),
+  `drain_events() -> String` (JSON : liste `{tick, years, kind, title, body, cell}` depuis le dernier appel).
+- `config_json` = `WorldConfig` de `interface/src/world-setup/world-config.ts` + `level` (défaut 7).
+- **Boucle** (sim-process) : `clock::Scheduler` décide de Δt ; à chaque tick : `step`, puis au plus 10 trames/s :
+  `{type:'frame', simYears, effectiveRatio, fields, vitals}` ; les événements partent en `{type:'event', …}`.
+- Lookup L7 à 2048×1024 : envoyée une seule fois à la création.
