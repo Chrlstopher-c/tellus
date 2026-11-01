@@ -12,3 +12,12 @@
 - Maquette `mockup/` (servie par `python3 -m http.server 4317 -d mockup`) : globe, carte, morphing, calques,
   inspecteur, temps, pouvoirs, écran de départ. 67 i/s, 0 erreur console, géométrie OK en 1920×1080 et 1366×768.
 - En attente : validation du design par Chris. Socle E1 (grille, squelette Electron) lancé en parallèle.
+
+## 2026-11-01 (nuit) — Session 1 (suite) : moteur et assemblage
+- Fusionnés : grille, horloge, insolation, genèse G1-G8, corps réels (MNT NASA/NOAA/USGS), climat EBM + glace,
+  matière (H2O C N P O2, thermostat), vivant (flore PFT, faune cohortes, évolution), monde + pont v2.
+- L'application tourne de bout en bout (e2e 3/3, CI verte) : écran de départ → monde simulé → globe/carte/calques/inspecteur.
+- Rendu : champs par cellule résolus sur GPU, lissés (gaussienne ~1 maille) + détail sous la maille.
+- Plantages de session dus aux sous-agents parallèles qui compilaient (charge 30-54/12) → travail séquentiel désormais.
+- Restant : hydrologie (récupérée, en test), perf du vivant, grandes transitions (la vie n'apparaît pas encore),
+  pouvoirs, chronique, deux écrans, sauvegarde, revues.
