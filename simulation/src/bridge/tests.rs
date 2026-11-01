@@ -1,63 +1,62 @@
-use super::world::{WorldError, WorldSlot, MAX_LEVEL};
+use super::encode;
+use super::slot::WorldSlot;
+use crate::world::{World, WorldError, WorldEvent, WorldRequest};
 
-const SEED: u32 = 42;
-const L6_CELLS: usize = 40_962;
-
-#[test]
-fn create_level_6_reports_cell_count() {
-    assert_eq!(WorldSlot::new().create(SEED, 6), Ok(L6_CELLS));
+fn small_world() -> World {
+    let request = WorldRequest::from_json(
+        r#"{"source":{"kind":"generated","seed":42,"waterPercent":70.8,"sizePercent":100,"distancePercent":100},"level":3}"#,
+    )
+    .expect("requête valide");
+    World::create(&request).expect("monde créé")
 }
 
 #[test]
-fn create_rejects_level_above_max() {
-    let level = MAX_LEVEL + 1;
-    assert_eq!(
-        WorldSlot::new().create(SEED, level),
-        Err(WorldError::InvalidLevel(level))
-    );
-}
-
-#[test]
-fn step_and_snapshot_without_world_fail() {
+fn slot_without_world_reports_no_world() {
     let slot = WorldSlot::new();
-    assert_eq!(slot.step(1.0), Err(WorldError::NoWorld));
-    assert_eq!(slot.snapshot(), Err(WorldError::NoWorld));
+    assert_eq!(slot.with(|w| Ok(w.info().cells)), Err(WorldError::NoWorld));
+    assert_eq!(slot.with_mut(|w| w.step(1.0)), Err(WorldError::NoWorld));
 }
 
 #[test]
-fn step_accumulates_simulated_time() {
+fn slot_keeps_the_replaced_world() {
     let slot = WorldSlot::new();
-    slot.create(SEED, 3).expect("L3 valide");
-    assert_eq!(slot.step(1.5), Ok(1.5));
-    assert_eq!(slot.step(0.25), Ok(1.75));
+    slot.replace(small_world()).expect("verrou sain");
+    assert_eq!(slot.with(|w| Ok(w.info().cells)), Ok(642));
+    assert_eq!(slot.with_mut(|w| w.step(2.5)), Ok(2.5));
 }
 
 #[test]
-fn step_rejects_negative_and_non_finite_durations() {
-    let slot = WorldSlot::new();
-    slot.create(SEED, 3).expect("L3 valide");
-    for dt in [-1.0, f64::NAN, f64::INFINITY] {
-        assert!(
-            matches!(slot.step(dt), Err(WorldError::InvalidDuration(_))),
-            "dt = {dt}"
-        );
-    }
+fn world_info_uses_interface_keys() {
+    let value = encode::world_info(small_world().info());
+    assert_eq!(value["cells"], 642);
+    assert_eq!(value["seed"], 42);
+    assert_eq!(value["name"], "Selmimi");
+    assert_eq!(value["lookupWidth"], 2048);
+    assert_eq!(value["lookupHeight"], 1024);
 }
 
 #[test]
-fn snapshot_holds_one_zero_per_cell() {
-    let slot = WorldSlot::new();
-    let cells = slot.create(SEED, 3).expect("L3 valide");
-    let snapshot = slot.snapshot().expect("monde créé");
-    assert_eq!(snapshot.len(), cells);
-    assert!(snapshot.iter().all(|value| *value == 0.0));
+fn events_encode_missing_cell_as_null() {
+    let event = WorldEvent {
+        tick: 0,
+        years: 0.0,
+        kind: "geology",
+        title: "Formation du monde".to_owned(),
+        body: "corps".to_owned(),
+        cell: None,
+    };
+    let value = encode::events(&[event]);
+    assert!(value[0]["cell"].is_null());
+    assert_eq!(value[0]["kind"], "geology");
 }
 
 #[test]
-fn create_again_resets_simulated_time() {
-    let slot = WorldSlot::new();
-    slot.create(SEED, 3).expect("L3 valide");
-    slot.step(5.0).expect("pas valide");
-    slot.create(SEED, 3).expect("L3 valide");
-    assert_eq!(slot.step(0.0), Ok(0.0));
+fn vitals_and_region_keep_interface_fields() {
+    let world = small_world();
+    let vitals = encode::vitals(&world.vitals());
+    assert_eq!(vitals["species"], 0);
+    assert!(vitals["era"].as_str().is_some_and(|era| era.contains("sans vie")));
+    let region = encode::cell(&world.inspect(0).expect("cellule 0"));
+    assert!(region["soil"]["water"].is_number());
+    assert!(region["biome"].is_null());
 }

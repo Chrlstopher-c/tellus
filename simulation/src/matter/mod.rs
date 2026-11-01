@@ -14,6 +14,7 @@ mod oxygen;
 mod params;
 mod phosphorus;
 mod report;
+mod soil_view;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -24,5 +25,6 @@ pub use error::MatterError;
 pub use inputs::MatterInputs;
 pub use params::MatterConfig;
 pub use report::{ElementDrift, MatterReport};
+pub use soil_view::SoilView;
 pub use state::{init, MatterState};
 pub use tick::step;
