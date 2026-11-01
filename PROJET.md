@@ -68,8 +68,8 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 
 ### E3 — Climat
 - [x] E3.S1 — Orbite, insolation Berger, saisons — VERIFY: `cargo test climate::insolation` (V-01 à V-05)
-- [ ] E3.S2 — EBM implicite, effet de serre, τ calibrés, régimes de pas — VERIFY: `cargo test climate::ebm climate::planets`
-- [ ] E3.S3 — Glace, albédo, boule de neige hystérétique — VERIFY: `cargo test climate::ice`
+- [x] E3.S2 — EBM implicite, effet de serre, τ calibrés, régimes de pas — VERIFY: `cargo test climate::ebm climate::planets`
+- [x] E3.S3 — Glace, albédo, boule de neige hystérétique — VERIFY: `cargo test climate::ice`
 - [ ] E3.S4 — Vents, évaporation, précipitations, orographie, glace de mer — VERIFY: `cargo test climate::hydro climate::wind climate::koppen`
 - [ ] E3.S5 — Nuages, glace et neige rendus depuis l'état simulé ; calques température / pluie — VERIFY: e2e `climate-layers`
 - [ ] E3.S6 — Banc climat ≥ 4 ticks/s à L7 toutes vitesses — VERIFY: `cargo bench climate`
