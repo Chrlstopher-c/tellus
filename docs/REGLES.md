@@ -40,7 +40,8 @@ Les valeurs marquées [M] dans les recherches sont à vérifier sur la source av
 - Voisinage CSR, aires exactes, 3 itérations de Lloyd. Cellules ordonnées sur une courbe de remplissage (localité).
 - Pour le rendu : table `texel → (3 cellules, 2 barycentriques)` calculée une fois ; les champs par cellule sont envoyés
   en textures de données, interpolées dans le shader.
-- Tests : `grid_cell_count`, `grid_valence` (12 pentagones), `grid_area_sum` (4πR² à 1e-9), `grid_area_uniformity` (< 1,25).
+- Tests : `grid_cell_count`, `grid_valence` (12 pentagones), `grid_area_sum` (4πR² à 1e-9), `grid_area_uniformity` (< 1,25),
+  `texel_lookup_valid` (la cellule la plus proche est toujours un sommet du triangle trouvé).
 
 ## 3. Genèse (domaine `genesis`) — détail : `recherche/genese.md`
 Pipeline pur G0→G8 : grille → 8-14 plaques (Dijkstra bruité) → rotations d'Euler → frontières (convergente,

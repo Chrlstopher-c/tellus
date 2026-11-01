@@ -50,9 +50,9 @@ Civilisations (V2, prévues dans l'architecture), technologie (V3), tectonique e
 Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; moteur = sous-agents Haiku.
 
 ### E1 — Socle qui tourne
-- [ ] E1.S1 — Electron + Vite + React + TS, fenêtre plein écran, journal pino — VERIFY: `pnpm build && pnpm test:e2e --grep boot`
+- [x] E1.S1 — Electron + Vite + React + TS, fenêtre plein écran, journal pino — VERIFY: `pnpm build && pnpm test:e2e --grep boot`
 - [ ] E1.S2 — Crate `simulation` napi-rs chargé dans un utilityProcess, ping/tick — VERIFY: `cargo test && pnpm test:e2e --grep sim-process`
-- [ ] E1.S3 — Grille géodésique L6/L7 + table texel→cellules — VERIFY: `cargo test grid`
+- [x] E1.S3 — Grille géodésique L6/L7 + table texel→cellules — VERIFY: `cargo test grid`
 - [ ] E1.S4 — Horloge multi-échelle, vitesses, pause, vitesse effective, instantanés MessagePort — VERIFY: `cargo test clock && pnpm test --run snapshot`
 - [ ] E1.S5 — Globe WebGPU/TSL alimenté par un instantané (portage des shaders de la maquette) — VERIFY: `pnpm test:e2e --grep renderer` (≥ 60 i/s mesurés)
 - [ ] E1.S6 — start/stop/restart, bancs `cargo bench`, CI verte — VERIFY: `./start.sh && ./stop.sh && gh run list -L1`
