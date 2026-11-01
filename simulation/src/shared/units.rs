@@ -34,3 +34,5 @@ pub const GDH1_DEEP_DEPTH_M: f64 = 5_651.0;
 pub const GDH1_DEEP_AMP_M: f64 = 2_473.0;
 /// GDH1 : taux de la branche exponentielle, Ma⁻¹.
 pub const GDH1_DECAY_PER_MA: f64 = 0.0278;
+/// Capacité thermique volumique de l'eau, J m⁻³ K⁻¹ (ρ·c, équivalent eau des capacités de surface).
+pub const WATER_VOLUMETRIC_HEAT_CAPACITY: f64 = 4.18e6;
