@@ -23,6 +23,7 @@ pub enum WorldError {
     Greenhouse(GreenhouseError),
     Climate(ClimateError),
     Matter(MatterError),
+    LifeInputs,
 }
 
 impl fmt::Display for WorldError {
@@ -42,6 +43,7 @@ impl fmt::Display for WorldError {
             Self::Greenhouse(error) => write!(f, "effet de serre : {error}"),
             Self::Climate(error) => write!(f, "climat : {error}"),
             Self::Matter(error) => write!(f, "matière : {error}"),
+            Self::LifeInputs => write!(f, "forçages du vivant incohérents : pas de pas"),
         }
     }
 }

@@ -58,5 +58,5 @@ fn vitals_and_region_keep_interface_fields() {
     assert!(vitals["era"].as_str().is_some_and(|era| era.contains("sans vie")));
     let region = encode::cell(&world.inspect(0).expect("cellule 0"));
     assert!(region["soil"]["water"].is_number());
-    assert!(region["biome"].is_null());
+    assert!(region["biome"].is_null() || region["biome"].is_string());
 }

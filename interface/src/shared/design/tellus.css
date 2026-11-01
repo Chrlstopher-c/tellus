@@ -166,7 +166,7 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.6; }
 .play:hover { transform: scale(1.05); }
 .play svg { width: 16px; height: 16px; fill: currentColor; }
 .speeds { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); }
-.speed { padding: 5px 10px; border-radius: 7px; font: 12px var(--mono); color: var(--ink-3); transition: background 0.2s, color 0.2s; }
+.speed { white-space: nowrap; padding: 5px 10px; border-radius: 7px; font: 12px var(--mono); color: var(--ink-3); transition: background 0.2s, color 0.2s; }
 .speed:hover { color: var(--ink); }
 .speed.active { background: rgba(232, 194, 126, 0.14); color: var(--time); }
 .speed-label { margin-left: auto; color: var(--ink-2); font-size: 12px; text-align: right; }

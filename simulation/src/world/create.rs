@@ -6,11 +6,12 @@ use super::lookup;
 use super::name::name_from_seed;
 use super::physics::{generated_body, playable_body_id, GeneratedPhysics};
 use super::request::{GeneratedSpec, Source, WorldRequest, MAX_LEVEL};
-use super::state::{MatterFeed, World, WorldInfo};
+use super::state::{ClimateFeed, World, WorldInfo};
 use crate::climate::body::Body;
 use crate::climate::{self, ClimateConfig, OlrLaw, Surface};
 use crate::clock::{Scheduler, Speed};
 use crate::genesis::{self, Planet, WorldParams};
+use crate::life;
 use crate::matter::{self, MatterConfig, MatterInputs};
 use crate::shared::grid::Grid;
 
@@ -129,7 +130,7 @@ fn assemble(parts: Parts) -> Result<World, WorldError> {
         is_ocean: &is_ocean,
     };
     let climate = climate::init(&grid, &body, &surface, &climate_config)?;
-    let feed = MatterFeed::from_climate(&climate);
+    let feed = ClimateFeed::from_climate(&climate);
     let zeros = vec![0.0_f32; grid.cell_count()];
     let inputs = MatterInputs {
         temperature_c: &feed.temperature,
@@ -142,6 +143,7 @@ fn assemble(parts: Parts) -> Result<World, WorldError> {
         biomass_gc_m2: &zeros,
     };
     let matter = matter::init(&matter_config, &grid, &inputs)?;
+    let life = life::init(&grid);
     let lookup = lookup::build(&grid);
     let mut journal = Journal::default();
     journal.record(formation_event(description));
@@ -152,6 +154,7 @@ fn assemble(parts: Parts) -> Result<World, WorldError> {
         planet,
         climate,
         matter,
+        life,
         clock: Scheduler::new(Speed::Pause),
         lookup,
         journal,

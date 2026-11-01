@@ -98,7 +98,7 @@ vec3 bumpNormal(vec3 n,float landW){
   float lon=(vUv.x-0.5)*TAU,lat=(vUv.y-0.5)*PI;
   vec3 east=normalize(mix(uRot*vec3(cos(lon),0.0,-sin(lon)),vec3(1.0,0.0,0.0),vFlat));
   vec3 north=normalize(mix(uRot*vec3(-sin(lat)*sin(lon),cos(lat),-sin(lat)*cos(lon)),vec3(0.0,1.0,0.0),vFlat));
-  float k=0.00042/max(cos(lat),0.25)*landW;
+  float k=0.00016/max(cos(lat),0.25)*landW;
   return normalize(n-(east*ex*k+north*ey*k*0.5));
 }
 

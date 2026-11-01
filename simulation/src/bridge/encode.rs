@@ -13,37 +13,50 @@ pub fn world_info(info: &WorldInfo) -> Value {
     })
 }
 
-/// Champs sans source au MVP (o₂ et espèces : vivant absent) envoyés à zéro.
+/// Valeurs globales : O₂ et CO₂ (matière), espèces et biomasse (vivant), température moyenne (climat).
 pub fn vitals(vitals: &Vitals) -> Value {
     json!({
         "o2Percent": vitals.o2_percent,
         "co2Ppm": vitals.co2_ppm,
         "meanTempC": vitals.mean_temp_c,
-        "species": 0,
-        "biomassGtC": 0,
+        "species": vitals.species,
+        "biomassGtC": vitals.biomass_gtc,
         "era": vitals.era,
     })
 }
 
 pub fn cell(detail: &CellDetail) -> Value {
+    let species: Vec<Value> = detail
+        .species
+        .iter()
+        .map(|line| {
+            json!({
+                "id": line.id,
+                "name": line.name,
+                "role": line.role.as_str(),
+                "population": line.population,
+                "trend": [],
+            })
+        })
+        .collect();
     json!({
         "lat": detail.lat_deg,
         "lon": detail.lon_deg,
         "elevation": detail.elevation_m,
         "temperature": detail.temperature_c,
-        "precipitation": 0,
+        "precipitation": detail.precip_mm_yr,
         "iceFraction": detail.ice_fraction,
-        "vegCover": 0,
-        "nppGcM2Yr": 0,
+        "vegCover": detail.veg_cover,
+        "nppGcM2Yr": detail.npp_gc_m2_yr,
         "soil": {
             "water": detail.soil.water,
             "carbon": detail.soil.carbon,
             "nitrogen": detail.soil.nitrogen,
             "phosphorus": detail.soil.phosphorus,
         },
-        "biome": null,
-        "speciesCount": 0,
-        "species": [],
+        "biome": detail.biome,
+        "speciesCount": detail.species_count,
+        "species": species,
     })
 }
 

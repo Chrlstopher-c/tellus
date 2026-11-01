@@ -1,15 +1,19 @@
-//! Monde vivant : possède la grille, la planète, le climat, la matière, l'horloge, la table de rendu et le journal.
-//! `step` appelle les domaines dans l'ordre de REGLES §12 (climat → matière) avec le régime de chaque système.
+//! Monde vivant : possède la grille, la planète, le climat, la matière, le vivant, l'horloge, la table de rendu et le
+//! journal. `step` appelle les domaines dans l'ordre de REGLES §12 (climat → matière → vivant).
 
 use super::error::WorldError;
 use super::journal::{Journal, WorldEvent};
 use super::lookup::Lookup;
+use super::region::{self, SpeciesLine};
 use super::schedule::speed_for_rate;
 use crate::climate::{self, ClimateInputs, ClimateState};
 use crate::clock::{self, Scheduler, System};
 use crate::genesis::Planet;
+use crate::life::{self, LifeInputs, LifeState};
 use crate::matter::{self, MatterInputs, MatterState, SoilView};
 use crate::shared::grid::Grid;
+
+const KG_C_PER_GT_C: f64 = 1.0e12;
 
 /// Identité du monde, fixée à la création.
 #[derive(Debug, Clone, PartialEq)]
@@ -25,29 +29,38 @@ pub struct Vitals {
     pub o2_percent: f64,
     pub co2_ppm: f64,
     pub mean_temp_c: f64,
+    pub species: usize,
+    pub biomass_gtc: f64,
     pub era: String,
 }
 
-/// Détail d'une cellule pour l'inspecteur (champs absents du domaine : 0 ou vides côté pont).
+/// Détail d'une cellule pour l'inspecteur.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CellDetail {
     pub lat_deg: f64,
     pub lon_deg: f64,
     pub elevation_m: f64,
     pub temperature_c: f64,
+    pub precip_mm_yr: f64,
     pub ice_fraction: f64,
+    pub veg_cover: f64,
+    pub npp_gc_m2_yr: f64,
     pub soil: SoilView,
+    /// `None` pour une cellule océanique.
+    pub biome: Option<&'static str>,
+    pub species_count: usize,
+    pub species: Vec<SpeciesLine>,
 }
 
-/// Champs climatiques convertis en f32 pour la matière (contrat §12 : tranches par cellule).
-pub(super) struct MatterFeed {
+/// Champs climatiques convertis en f32 pour la matière et le vivant (contrat §12 : tranches par cellule).
+pub(super) struct ClimateFeed {
     pub(super) temperature: Vec<f32>,
     pub(super) precip: Vec<f32>,
     pub(super) insolation: Vec<f32>,
     pub(super) ice: Vec<f32>,
 }
 
-impl MatterFeed {
+impl ClimateFeed {
     pub(super) fn from_climate(climate: &ClimateState) -> Self {
         Self {
             temperature: to_f32(&climate.temperature_c),
@@ -64,11 +77,12 @@ pub struct World {
     pub(super) planet: Planet,
     pub(super) climate: ClimateState,
     pub(super) matter: MatterState,
+    pub(super) life: LifeState,
     pub(super) clock: Scheduler,
     pub(super) lookup: Lookup,
     pub(super) journal: Journal,
     pub(super) is_ocean: Vec<bool>,
-    /// Zéros par cellule pour les entrées de domaines pas encore branchés (hydrologie, vivant).
+    /// Zéros par cellule pour les entrées de domaines pas encore branchés (hydrologie).
     pub(super) zeros: Vec<f32>,
     pub(super) time_years: f64,
     pub(super) ticks: u64,
@@ -107,7 +121,9 @@ impl World {
             return Err(WorldError::InvalidDuration(dt_years));
         }
         self.climate_step(dt_years)?;
-        self.matter_step(dt_years)?;
+        let feed = ClimateFeed::from_climate(&self.climate);
+        self.matter_step(dt_years, &feed)?;
+        self.life_step(dt_years, &feed)?;
         self.time_years += dt_years;
         self.ticks += 1;
         Ok(self.time_years)
@@ -120,18 +136,21 @@ impl World {
             fields.push(elevation);
             fields.push(self.climate.temperature_c[cell] as f32);
             fields.push(self.climate.precip_mm_yr[cell] as f32);
-            fields.push(0.0);
+            fields.push(self.life.veg_cover()[cell]);
         }
         fields
     }
 
     pub fn vitals(&self) -> Vitals {
         let mean_temp_c = area_mean(&self.grid, &self.climate.temperature_c);
+        let species = self.life.lineages().alive_count();
         Vitals {
             o2_percent: self.matter.o2_fraction() * 100.0,
             co2_ppm: self.matter.co2_ppm(),
             mean_temp_c,
-            era: era_label(mean_temp_c),
+            species,
+            biomass_gtc: self.life.living_kgc() / KG_C_PER_GT_C,
+            era: era_label(mean_temp_c, species),
         }
     }
 
@@ -142,13 +161,24 @@ impl World {
             return Err(WorldError::CellOutOfRange { cell, cells });
         }
         let [x, y, z] = self.grid.centers()[index];
+        let temperature_c = self.climate.temperature_c[index];
+        let precip_mm_yr = self.climate.precip_mm_yr[index];
+        let veg_cover = f64::from(self.life.veg_cover()[index]);
+        let (species_count, species) = region::species_in_cell(&self.life, index);
+        let biome = (!self.is_ocean[index]).then(|| region::biome_for(temperature_c, precip_mm_yr, veg_cover));
         Ok(CellDetail {
             lat_deg: y.atan2(x.hypot(z)).to_degrees(),
             lon_deg: x.atan2(z).to_degrees(),
             elevation_m: f64::from(self.planet.elevation_m[index]),
-            temperature_c: self.climate.temperature_c[index],
+            temperature_c,
+            precip_mm_yr,
             ice_fraction: self.climate.ice_fraction[index],
+            veg_cover,
+            npp_gc_m2_yr: f64::from(self.life.npp_realized_gc_m2_yr()[index]),
             soil: self.matter.soil(index),
+            biome,
+            species_count,
+            species,
         })
     }
 
@@ -175,9 +205,8 @@ impl World {
         Ok(())
     }
 
-    fn matter_step(&mut self, dt_years: f64) -> Result<(), WorldError> {
+    fn matter_step(&mut self, dt_years: f64, feed: &ClimateFeed) -> Result<(), WorldError> {
         let regime = clock::regime(System::Matter, dt_years);
-        let feed = MatterFeed::from_climate(&self.climate);
         let inputs = MatterInputs {
             temperature_c: &feed.temperature,
             precip_mm_yr: &feed.precip,
@@ -199,6 +228,40 @@ impl World {
         )?;
         Ok(())
     }
+
+    /// Vivant : l'humidité du sol vient de la matière (le climat ne calcule pas encore l'hydrologie).
+    fn life_step(&mut self, dt_years: f64, feed: &ClimateFeed) -> Result<(), WorldError> {
+        let regime = clock::regime(System::Life, dt_years);
+        let soil_moisture: Vec<f32> = (0..self.grid.cell_count())
+            .map(|cell| self.matter.soil(cell).water as f32)
+            .collect();
+        let inputs = LifeInputs {
+            temperature_c: &feed.temperature,
+            precip_mm_yr: &feed.precip,
+            soil_moisture: &soil_moisture,
+            ice_fraction: &feed.ice,
+            is_ocean: &self.is_ocean,
+            npp_cap_gc_m2_yr: &self.matter.npp_cap_gc_m2_yr,
+            n_avail: &self.matter.n_avail,
+            p_avail: &self.matter.p_avail,
+            nutrient_ocean: &self.matter.nutrient_ocean,
+            o2_fraction: self.matter.o2_fraction(),
+            co2_ppm: self.matter.co2_ppm(),
+        };
+        let report = life::step(
+            &mut self.life,
+            &self.grid,
+            &inputs,
+            dt_years,
+            regime,
+            self.ticks,
+            self.info.seed,
+        );
+        if report.input_error {
+            return Err(WorldError::LifeInputs);
+        }
+        Ok(())
+    }
 }
 
 fn to_f32(values: &[f64]) -> Vec<f32> {
@@ -211,8 +274,8 @@ fn area_mean(grid: &Grid, values: &[f64]) -> f64 {
     areas.iter().zip(values).map(|(area, value)| area * value).sum::<f64>() / total
 }
 
-/// Qualificatif de l'époque, dérivé de la température moyenne ; pas de vie ni d'oxygène au MVP.
-fn era_label(mean_temp_c: f64) -> String {
+/// Qualificatif de l'époque, dérivé de la température moyenne et de la présence de lignées.
+fn era_label(mean_temp_c: f64, species: usize) -> String {
     let climate = if mean_temp_c < -10.0 {
         "gelée"
     } else if mean_temp_c > 40.0 {
@@ -220,5 +283,6 @@ fn era_label(mean_temp_c: f64) -> String {
     } else {
         "jeune"
     };
-    format!("Âge du monde · planète {climate}, sans vie")
+    let life = if species == 0 { "sans vie" } else { "vivante" };
+    format!("Âge du monde · planète {climate}, {life}")
 }

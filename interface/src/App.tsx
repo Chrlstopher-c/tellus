@@ -74,6 +74,7 @@ function Hud({ session, view, setView }: HudProps): ReactElement {
   return (
     <>
       {state.world && <PlanetCanvas world={state.world} clock={session.clock} onView={(v) => {
+        session.view.current = v;
         v?.setMode(view.mode); v?.setLayer(view.layer); v?.setClouds(view.clouds);
       }} onPick={pick.onPick} />}
       <div className="vignette" />
