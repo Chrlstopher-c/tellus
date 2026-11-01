@@ -164,6 +164,7 @@ fn assemble(parts: Parts) -> Result<World, WorldError> {
         zeros,
         time_years: 0.0,
         ticks: 0,
+        domain_ms: [0.0; 3],
     })
 }
 

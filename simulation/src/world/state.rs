@@ -86,6 +86,8 @@ pub struct World {
     pub(super) zeros: Vec<f32>,
     pub(super) time_years: f64,
     pub(super) ticks: u64,
+    /// Durée du dernier pas par domaine (climat, matière, vivant), en ms — mesure de performance.
+    pub(super) domain_ms: [f64; 3],
 }
 
 impl World {
@@ -120,10 +122,15 @@ impl World {
         if !(dt_years.is_finite() && dt_years > 0.0) {
             return Err(WorldError::InvalidDuration(dt_years));
         }
+        let t0 = std::time::Instant::now();
         self.climate_step(dt_years)?;
         let feed = ClimateFeed::from_climate(&self.climate);
+        let t1 = std::time::Instant::now();
         self.matter_step(dt_years, &feed)?;
+        let t2 = std::time::Instant::now();
         self.life_step(dt_years, &feed)?;
+        let ms = |a: std::time::Instant, b: std::time::Instant| (b - a).as_secs_f64() * 1e3;
+        self.domain_ms = [ms(t0, t1), ms(t1, t2), ms(t2, std::time::Instant::now())];
         self.time_years += dt_years;
         self.ticks += 1;
         Ok(self.time_years)

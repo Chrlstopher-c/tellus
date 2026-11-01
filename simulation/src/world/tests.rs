@@ -257,3 +257,22 @@ fn moon_refused_explicitly_until_climate_has_a_target() {
     let request = WorldRequest::from_json(json).expect("JSON valide");
     assert!(matches!(World::create(&request), Err(WorldError::Greenhouse(_))));
 }
+
+#[test]
+#[ignore]
+fn bench_domains_l6_by_regime() {
+    let mut world = generated_world(48_213, 6);
+    for dt in [0.1, 10.0, 1_000.0, 100_000.0] {
+        let mut sum = [0.0; 3];
+        for _ in 0..5 {
+            world.step(dt).expect("pas");
+            for (s, v) in sum.iter_mut().zip(world.domain_ms) {
+                *s += v / 5.0;
+            }
+        }
+        eprintln!(
+            "dt={dt:>9} ans : climat {:.1} ms, matière {:.1} ms, vivant {:.1} ms",
+            sum[0], sum[1], sum[2]
+        );
+    }
+}
