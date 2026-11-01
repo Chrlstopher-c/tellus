@@ -76,9 +76,9 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 
 ### E4 — Matière et vivant
 - [x] E4.S1 — Cycles H₂O, C, N, P, O₂ avec registre de transferts — VERIFY: `cargo test matter` (conservation 1e-9)
-- [ ] E4.S2 — Flore : 5 types fonctionnels, feu, biomes émergents — VERIFY: `cargo test life::flora`
-- [ ] E4.S3 — Faune : cohortes MTE, Holling, dispersion, comportements — VERIFY: `cargo test life::fauna`
-- [ ] E4.S4 — Lignées, mutation, spéciation, extinction, phylogénie — VERIFY: `cargo test life::evolution`
+- [x] E4.S2 — Flore : 5 types fonctionnels, feu, biomes émergents — VERIFY: `cargo test life::flora`
+- [x] E4.S3 — Faune : cohortes MTE, Holling, dispersion, comportements — VERIFY: `cargo test life::fauna`
+- [x] E4.S4 — Lignées, mutation, spéciation, extinction, phylogénie — VERIFY: `cargo test life::evolution`
 - [ ] E4.S5 — Grandes transitions (abiogenèse → sortie des eaux) sans script — VERIFY: `cargo test life::transitions` (50 graines)
 - [ ] E4.S6 — Inspecteur région / espèce, calques biomes et productivité, arbre phylogénétique — VERIFY: `pnpm test:e2e --grep inspector`
 
