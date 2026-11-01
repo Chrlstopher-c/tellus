@@ -53,8 +53,14 @@ fn trades_blow_east_to_west_and_westerlies_west_to_east() {
 #[test]
 fn meridional_wind_converges_on_the_intertropical_convergence_zone() {
     let circ = earth_circulation(0.0);
-    assert!(surface_wind(&circ, (-10_f64).to_radians()).1 > 0.0, "sud de la ZCIT : vers le nord");
-    assert!(surface_wind(&circ, 10_f64.to_radians()).1 < 0.0, "nord de la ZCIT : vers le sud");
+    assert!(
+        surface_wind(&circ, (-10_f64).to_radians()).1 > 0.0,
+        "sud de la ZCIT : vers le nord"
+    );
+    assert!(
+        surface_wind(&circ, 10_f64.to_radians()).1 < 0.0,
+        "nord de la ZCIT : vers le sud"
+    );
     assert!(surface_wind(&circ, 0.0).1.abs() < 1e-12, "axe de la ZCIT : v nul");
 }
 
@@ -70,7 +76,10 @@ fn surface_wind_is_continuous_at_cell_edges() {
     for edge in edges {
         let below = surface_wind(&circ, edge - 1e-9);
         let above = surface_wind(&circ, edge + 1e-9);
-        assert!((below.0 - above.0).abs() < 1e-3 && (below.1 - above.1).abs() < 1e-3, "bord {edge}");
+        assert!(
+            (below.0 - above.0).abs() < 1e-3 && (below.1 - above.1).abs() < 1e-3,
+            "bord {edge}"
+        );
     }
 }
 
@@ -78,5 +87,8 @@ fn surface_wind_is_continuous_at_cell_edges() {
 fn intertropical_convergence_zone_follows_its_centre() {
     let shifted = earth_circulation(10.0);
     assert!(surface_wind(&shifted, 10_f64.to_radians()).1.abs() < 1e-12);
-    assert!(surface_wind(&shifted, 0.0).1 > 0.0, "au sud de la ZCIT décalée, le vent va vers le nord");
+    assert!(
+        surface_wind(&shifted, 0.0).1 > 0.0,
+        "au sud de la ZCIT décalée, le vent va vers le nord"
+    );
 }

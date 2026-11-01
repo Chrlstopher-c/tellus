@@ -3,9 +3,9 @@
 //! sol en seau. Diagnostic, jamais à chaque tick : recalculé tous les `DIAGNOSTIC_INTERVAL_YEARS` simulés ou si
 //! |ΔT̄| > `DIAGNOSTIC_DELTA_K`.
 
-mod transport;
 #[cfg(test)]
 mod tests;
+mod transport;
 
 use super::body::Body;
 use super::ice::ice_fraction;
@@ -102,7 +102,10 @@ fn itcz_latitude(mesh: &Mesh, insolation: &[Vec<f64>], month: usize) -> f64 {
     let best = lagged
         .iter()
         .enumerate()
-        .fold((0, f64::NEG_INFINITY), |acc, (cell, &q)| if q > acc.1 { (cell, q) } else { acc })
+        .fold(
+            (0, f64::NEG_INFINITY),
+            |acc, (cell, &q)| if q > acc.1 { (cell, q) } else { acc },
+        )
         .0;
     mesh.sin_lat(best).asin()
 }
@@ -131,9 +134,19 @@ pub(super) fn diagnose(model: &ClimateModel, hydro: &HydroModel, state: &mut Cli
     if !hydro.ocean.iter().any(|&sea| sea) {
         // Sans océan il n'y a aucune source de vapeur : le transport conservatif garderait l'eau initiale.
         let zeros = vec![0.0; mesh.cell_count()];
-        return publish(model, hydro, state, &Accumulator::new(mesh.cell_count()), (&temp, &zeros));
+        return publish(
+            model,
+            hydro,
+            state,
+            &Accumulator::new(mesh.cell_count()),
+            (&temp, &zeros),
+        );
     }
-    let mut bucket: Vec<f64> = state.soil_moisture.iter().map(|f| f.clamp(0.0, 1.0) * BUCKET_CAPACITY_MM).collect();
+    let mut bucket: Vec<f64> = state
+        .soil_moisture
+        .iter()
+        .map(|f| f.clamp(0.0, 1.0) * BUCKET_CAPACITY_MM)
+        .collect();
     let mut warm: Vec<f64> = (0..mesh.cell_count())
         .map(|i| INITIAL_MOISTURE_RATIO * saturation_humidity(temp[i]) * MOIST_LAYER_KG_M2)
         .collect();
@@ -192,7 +205,14 @@ fn run_season(
     let stats = steady.solve(warm);
     let clamped = clamp_non_negative(warm);
     let (precip, evap) = fluxes(&terms, &lift, warm);
-    Season { zonal, meridional, precip, evap, stats, clamped }
+    Season {
+        zonal,
+        meridional,
+        precip,
+        evap,
+        stats,
+        clamped,
+    }
 }
 
 /// Vents de surface par cellule, m s⁻¹ (latitude de chaque cellule depuis le sinus stocké).
@@ -261,7 +281,13 @@ fn moisture_factor(ocean: &[bool], bucket: &[f64]) -> Vec<f64> {
     ocean
         .iter()
         .zip(bucket)
-        .map(|(&sea, &s)| if sea { 1.0 } else { (s / BUCKET_CAPACITY_MM).clamp(0.0, 1.0) })
+        .map(|(&sea, &s)| {
+            if sea {
+                1.0
+            } else {
+                (s / BUCKET_CAPACITY_MM).clamp(0.0, 1.0)
+            }
+        })
         .collect()
 }
 

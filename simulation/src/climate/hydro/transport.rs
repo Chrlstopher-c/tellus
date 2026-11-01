@@ -125,7 +125,13 @@ impl<'a> Steady<'a> {
             .zip(&self.area)
             .zip(&self.wsat)
             .zip(sat)
-            .map(|(((src, a), w), saturated)| if *saturated { src + a * w / self.rain_time_s } else { *src })
+            .map(|(((src, a), w), saturated)| {
+                if *saturated {
+                    src + a * w / self.rain_time_s
+                } else {
+                    *src
+                }
+            })
             .collect()
     }
 

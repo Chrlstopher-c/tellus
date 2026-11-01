@@ -41,7 +41,9 @@ pub fn held_hou_upper_wind(lat_rad: f64, omega: f64, radius_m: f64) -> f64 {
 /// Demi-largeur de la cellule de Hadley, radians, pour une vitesse de rotation relative `omega_rel` (1 = Terre).
 pub fn hadley_half_width(omega_rel: f64) -> f64 {
     let degrees = HADLEY_HALF_WIDTH_EARTH_DEG * omega_rel.max(f64::MIN_POSITIVE).powf(-HELD_HOU_EXPONENT);
-    degrees.clamp(HADLEY_HALF_WIDTH_MIN_DEG, HADLEY_HALF_WIDTH_MAX_DEG).to_radians()
+    degrees
+        .clamp(HADLEY_HALF_WIDTH_MIN_DEG, HADLEY_HALF_WIDTH_MAX_DEG)
+        .to_radians()
 }
 
 /// Géométrie et amplitude des trois cellules d'un hémisphère-couple, centrées sur la ZCIT.

@@ -38,3 +38,9 @@ pub const GDH1_DECAY_PER_MA: f64 = 0.0278;
 pub const WATER_VOLUMETRIC_HEAT_CAPACITY: f64 = 4.18e6;
 /// Chaleur latente de vaporisation de l'eau, J kg⁻¹.
 pub const LATENT_HEAT_VAPORIZATION_J_KG: f64 = 2.5e6;
+/// Grammes par gigatonne (1 Gt = 10¹⁵ g).
+pub const GRAMS_PER_GT: f64 = 1.0e15;
+/// Lame d'eau sur une surface : 1 mm sur 1 m² = 1e-12 km³.
+pub const KM3_PER_MM_M2: f64 = 1.0e-12;
+/// ppm de CO₂ atmosphérique par GtC (2,124 GtC/ppm, docs/recherche/nutriments.md § 0).
+pub const GTC_PER_PPM: f64 = 2.124;

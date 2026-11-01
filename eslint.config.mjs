@@ -19,4 +19,8 @@ export default tseslint.config(
       'no-console': 'error',
     },
   },
+  {
+    files: ['**/*.test.ts', 'tests/**/*.ts'],
+    rules: { 'max-lines-per-function': 'off' },
+  },
 );

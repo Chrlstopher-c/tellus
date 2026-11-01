@@ -259,7 +259,11 @@ fn edge_flows(offsets: &[u32], neighbors: &[u32], weights: &[f64], centers: &[Ve
     for (cell, window) in offsets.windows(2).enumerate() {
         for k in window[0] as usize..window[1] as usize {
             let other = neighbors[k] as usize;
-            let (low, high, sign) = if cell < other { (cell, other, 1.0) } else { (other, cell, -1.0) };
+            let (low, high, sign) = if cell < other {
+                (cell, other, 1.0)
+            } else {
+                (other, cell, -1.0)
+            };
             let length = weights[k] * angle(centers[cell], centers[other]);
             let normal = chord_normal(centers[low], centers[high]);
             flows.push(scale(normal, sign * length));

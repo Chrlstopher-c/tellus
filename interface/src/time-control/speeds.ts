@@ -1,5 +1,7 @@
 // Vitesses de simulation : miroir exact de `simulation/src/clock` (REGLES §1).
-export type SpeedId = 'day' | 'year' | 'century' | 'tenKyr' | 'myr' | 'tenMyr';
+import type { SpeedId } from '../sim-bridge/protocol';
+
+export type { SpeedId };
 
 export interface Speed {
   id: SpeedId;

@@ -31,7 +31,9 @@ export function surfaceName(r: RegionDetail): [string, string] {
     return r.elevation > -250 ? ['Plateau continental', 'Mer peu profonde'] : ['Océan ouvert', 'Plaine abyssale'];
   }
   if (r.iceFraction > 0.5) return ['Inlandsis', 'Glace permanente'];
-  if (r.biome) return [r.biome, r.vegCover > 0.5 ? 'Couvert végétal dense' : 'Couvert végétal clairsemé'];
+  if (r.biome && r.vegCover > 0.02) {
+    return [r.biome, r.vegCover > 0.5 ? 'Couvert végétal dense' : 'Couvert végétal clairsemé'];
+  }
   return r.precipitation < 250 ? ['Désert minéral', 'Roche et sable, sans vie'] : ['Roche nue', 'Sols minéraux, sans vie'];
 }
 

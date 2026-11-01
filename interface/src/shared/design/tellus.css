@@ -67,14 +67,12 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.6; }
 .year .unit { font: 400 13px var(--font); color: var(--ink-3); margin-left: 2px; }
 
 .toast {
-  position: fixed; top: 96px; left: 50%; transform: translateX(-50%);
+  position: fixed; top: 96px; left: 50%;
   display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px 12px 14px; max-width: 420px;
-  animation: toast-in 0.6s var(--ease);
 }
 .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--life); margin-top: 6px; flex: none; }
 .toast-title { font-weight: 500; }
 .toast-body { color: var(--ink-2); font-size: 12px; }
-@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } }
 
 /* Actions haut droite */
 .top-actions { position: fixed; top: 28px; right: 32px; display: flex; gap: 10px; }
@@ -168,7 +166,7 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.6; }
 .play:hover { transform: scale(1.05); }
 .play svg { width: 16px; height: 16px; fill: currentColor; }
 .speeds { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); }
-.speed { padding: 5px 10px; border-radius: 7px; font: 12px var(--mono); color: var(--ink-3); transition: background 0.2s, color 0.2s; }
+.speed { white-space: nowrap; padding: 5px 10px; border-radius: 7px; font: 12px var(--mono); color: var(--ink-3); transition: background 0.2s, color 0.2s; }
 .speed:hover { color: var(--ink); }
 .speed.active { background: rgba(232, 194, 126, 0.14); color: var(--time); }
 .speed-label { margin-left: auto; color: var(--ink-2); font-size: 12px; text-align: right; }
@@ -233,3 +231,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px;
 .launch:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(236, 231, 223, 0.12); }
 
 .tick:hover::after, .power:hover::after { opacity: 1; transition-delay: 0.35s; }
+
+.loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--ink-2); font: 400 15px var(--font); }
+main { height: 100%; }
+#root { height: 100%; }

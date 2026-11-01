@@ -55,26 +55,40 @@ fn spun_up(t: &Terra, config: &ClimateConfig) -> (ClimateState, Option<HydroRepo
         co2_ppm: 280.0,
         surface_albedo: None,
     };
-    step(&mut state, &t.grid, &inputs, 10_000.0, regime(System::Climate, 10_000.0), 0, 0).expect("équilibre");
+    step(
+        &mut state,
+        &t.grid,
+        &inputs,
+        10_000.0,
+        regime(System::Climate, 10_000.0),
+        0,
+        0,
+    )
+    .expect("équilibre");
     let mut last = None;
     for _ in 0..3 {
-        last = step(&mut state, &t.grid, &inputs, 11.0, Regime::Secular, 0, 0).expect("pas").hydro;
+        last = step(&mut state, &t.grid, &inputs, 11.0, Regime::Secular, 0, 0)
+            .expect("pas")
+            .hydro;
     }
     (state, last)
 }
 
 fn area_mean_of(t: &Terra, values: &[f64], keep: impl Fn(f64, f64) -> bool) -> f64 {
-    let (sum, weight) = t.grid.centers().iter().zip(values).zip(t.grid.areas_m2()).fold(
-        (0.0, 0.0),
-        |(s, w), ((c, v), a)| {
-            let (lon, lat) = lon_lat_deg(*c);
-            if keep(lon, lat) {
-                (s + a * v, w + a)
-            } else {
-                (s, w)
-            }
-        },
-    );
+    let (sum, weight) =
+        t.grid
+            .centers()
+            .iter()
+            .zip(values)
+            .zip(t.grid.areas_m2())
+            .fold((0.0, 0.0), |(s, w), ((c, v), a)| {
+                let (lon, lat) = lon_lat_deg(*c);
+                if keep(lon, lat) {
+                    (s + a * v, w + a)
+                } else {
+                    (s, w)
+                }
+            });
     sum / weight
 }
 
@@ -123,7 +137,12 @@ fn directed_flux_is_exactly_antisymmetric() {
                 .find(|&m| neighbours[m] as usize == i)
                 .expect("arête réciproque");
             let sum = flux[k] + flux[back];
-            assert!(sum.abs() <= 1e-12 * flux[k].abs().max(1.0), "({i},{j}) : {} + {}", flux[k], flux[back]);
+            assert!(
+                sum.abs() <= 1e-12 * flux[k].abs().max(1.0),
+                "({i},{j}) : {} + {}",
+                flux[k],
+                flux[back]
+            );
         }
     }
 }
@@ -135,7 +154,12 @@ fn v21_water_balance_closes_within_one_percent() {
     let (_, report) = spun_up(&t, &earth_config());
     let report = report.expect("recalcul hydrologique");
     let gap = (report.mean_precip_mm_yr - report.mean_evap_mm_yr).abs() / report.mean_precip_mm_yr;
-    assert!(gap < 0.01, "P̄ {} vs Ē {} mm/an", report.mean_precip_mm_yr, report.mean_evap_mm_yr);
+    assert!(
+        gap < 0.01,
+        "P̄ {} vs Ē {} mm/an",
+        report.mean_precip_mm_yr,
+        report.mean_evap_mm_yr
+    );
     assert_eq!(report.unconverged_seasons, 0, "{report:?}");
 }
 
@@ -244,7 +268,12 @@ fn bench_hydro_diagnostic_l6_under_150_ms() {
         .num_threads(6)
         .build()
         .expect("pool")
-        .install(|| timed(&ClimateConfig { hydrology: false, ..earth_config() }));
+        .install(|| {
+            timed(&ClimateConfig {
+                hydrology: false,
+                ..earth_config()
+            })
+        });
     let cost = with_water.0 - without.0;
     println!("BANC hydro L6 : {cost:.1} ms, {:?}", with_water.1);
     assert!(cost < 150.0, "recalcul hydrologique L6 : {cost} ms");
@@ -258,8 +287,12 @@ fn probe_zonal_profile() {
     println!("REPORT {report:?}");
     for band in 0..9 {
         let (lo, hi) = (f64::from(band) * 10.0, f64::from(band) * 10.0 + 10.0);
-        let land = area_mean_of(&t, &state.precip_mm_yr, |lon, lat| (lo..hi).contains(&lat.abs()) && is_land(lon, lat));
-        let sea = area_mean_of(&t, &state.precip_mm_yr, |lon, lat| (lo..hi).contains(&lat.abs()) && !is_land(lon, lat));
+        let land = area_mean_of(&t, &state.precip_mm_yr, |lon, lat| {
+            (lo..hi).contains(&lat.abs()) && is_land(lon, lat)
+        });
+        let sea = area_mean_of(&t, &state.precip_mm_yr, |lon, lat| {
+            (lo..hi).contains(&lat.abs()) && !is_land(lon, lat)
+        });
         let temp = area_mean_of(&t, &state.temperature_c, |_, lat| (lo..hi).contains(&lat.abs()));
         let wu = area_mean_of(&t, &state.wind_u, |_, lat| (lo..hi).contains(&lat.abs()));
         let wv = area_mean_of(&t, &state.wind_v, |_, lat| (lo..hi).contains(&lat.abs()));

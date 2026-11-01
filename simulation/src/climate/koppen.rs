@@ -62,15 +62,16 @@ fn arid_threshold_mm(annual_temp: f64, temp_c: &[f64; MONTHS], precip_mm: &[f64;
 /// Premier mois de la fenêtre de six mois consécutifs la plus chaude (moyenne).
 fn warmest_half_start(temp_c: &[f64; MONTHS]) -> usize {
     let mean_of = |start: usize| (0..6).map(|k| temp_c[(start + k) % MONTHS]).sum::<f64>();
-    (0..MONTHS).fold((0, f64::NEG_INFINITY), |best, start| {
-        let value = mean_of(start);
-        if value > best.1 {
-            (start, value)
-        } else {
-            best
-        }
-    })
-    .0
+    (0..MONTHS)
+        .fold((0, f64::NEG_INFINITY), |best, start| {
+            let value = mean_of(start);
+            if value > best.1 {
+                (start, value)
+            } else {
+                best
+            }
+        })
+        .0
 }
 
 #[cfg(test)]

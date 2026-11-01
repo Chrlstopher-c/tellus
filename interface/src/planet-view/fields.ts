@@ -1,17 +1,13 @@
 // Champs de la planète côté GPU : table texel → cellules, deux instantanés par cellule, texture résolue.
 import * as THREE from 'three';
+import type { CellLookup } from '../sim-bridge/protocol';
 import { RESOLVE_FRAG, RESOLVE_VERT } from './shaders/resolve';
+import { FieldSmoother } from './smoothing';
 
 export const CELLS_WIDTH = 1024;
 export const FIELD_CHANNELS = 4;
 
-/** Table de rendu calculée par la simulation : 3 cellules (RGBA, A inutilisé) et 2 poids (RG) par texel. */
-export interface CellLookup {
-  width: number;
-  height: number;
-  ids: Float32Array;
-  weights: Float32Array;
-}
+export type { CellLookup } from '../sim-bridge/protocol';
 
 /** Instantané : par cellule altitude (m), température (°C), précipitations (mm/an), couvert végétal (0-1). */
 export interface CellSnapshot {
@@ -69,6 +65,7 @@ interface ResolveUniforms {
 export class FieldStore {
   readonly target: THREE.WebGLRenderTarget;
   private readonly uniforms: ResolveUniforms;
+  private readonly smoother: FieldSmoother;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private prev: CellBuffer;
@@ -77,6 +74,7 @@ export class FieldStore {
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly lookup: CellLookup, cellCount: number) {
     this.target = resolveTarget(lookup.width, lookup.height, renderer.capabilities.getMaxAnisotropy());
+    this.smoother = new FieldSmoother(lookup.width, lookup.height);
     this.prev = cellBuffer(cellCount);
     this.next = cellBuffer(cellCount);
     this.uniforms = {
@@ -106,13 +104,14 @@ export class FieldStore {
   }
 
   setSeed(seed: number): void {
-    this.uniforms.uSeed.value = (seed % 1000) / 7.3;
+    this.smoother.setSeed((seed % 1000) / 7.3);
   }
 
   resolve(alpha: number): void {
     this.uniforms.uAlpha.value = Math.min(1, Math.max(0, alpha));
-    this.renderer.setRenderTarget(this.target);
+    this.renderer.setRenderTarget(this.smoother.raw);
     this.renderer.render(this.scene, this.camera);
+    this.smoother.run(this.renderer, this.target);
     this.renderer.setRenderTarget(null);
   }
 

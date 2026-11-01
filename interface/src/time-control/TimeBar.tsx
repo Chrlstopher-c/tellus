@@ -21,7 +21,7 @@ interface Props {
 function speedLabel(playing: boolean, speed: SpeedId, ratio: number): string {
   if (!playing) return 'en pause';
   const base = SPEEDS.find((s) => s.id === speed)?.description ?? '';
-  return ratio < 0.95 ? `${base} · ralenti à ${Math.round(ratio * 100)} %` : base;
+  return ratio < 0.95 ? `${base} · ralenti à ${Math.round(ratio * 100)}\u202F%` : base;
 }
 
 export function TimeBar(p: Props): ReactElement {

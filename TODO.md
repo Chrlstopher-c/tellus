@@ -14,3 +14,4 @@
 - Genèse : `tectonics_frozen_mvp` ne teste que le déterminisme (pas de temps dans l'API) — à revoir avec la dérive des plaques.
 - Climat : préconditionneur multigrille (L7 à 470-650 ms par pas annuel, plafond 300 itérations atteint).
 - Climat : seuil de déglaciation de la boule de neige ×1 000-10 000 CO₂ (littérature ~×350) — ajouter assombrissement de la glace par poussières/cendres.
+- Matière : biologie séquentielle (registre partagé) — paralléliser par blocs pour L6 < 40 ms ; coût énergétique de la fixation N non couplé à la NPP.

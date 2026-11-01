@@ -61,7 +61,7 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 
 ### E2 — La planète
 - [x] E2.S1 — Genèse G0-G8 (plaques, frontières, GDH1, isostasie, érosion, niveau de la mer) — VERIFY: `cargo test genesis`
-- [ ] E2.S2 — Corps réels : planets.json + MNT réduits (Terre, Mars, Vénus, Lune) — VERIFY: `cargo test presets && ./scripts/dem/check.sh`
+- [x] E2.S2 — Corps réels : planets.json + MNT réduits (Terre, Mars, Vénus, Lune) — VERIFY: `cargo test presets && ./scripts/dem/check.sh`
 - [ ] E2.S3 — Rendu complet du globe : océan, relief, atmosphère, nuages, terminateur — VERIFY: revue design Opus + e2e `globe`
 - [ ] E2.S4 — Carte 2D à calques + bascule par morphing, mêmes couleurs — VERIFY: `pnpm test:e2e --grep map-switch`
 - [ ] E2.S5 — Sélecteur de monde (graine, fraction d'eau, corps réels), écran de départ — VERIFY: `pnpm test:e2e --grep world-picker`
@@ -75,10 +75,10 @@ Règles et tests de chaque story : `docs/REGLES.md`. Visuel = moi ou Opus ; mote
 - [ ] E3.S6 — Banc climat ≥ 4 ticks/s à L7 toutes vitesses — VERIFY: `cargo bench climate`
 
 ### E4 — Matière et vivant
-- [ ] E4.S1 — Cycles H₂O, C, N, P, O₂ avec registre de transferts — VERIFY: `cargo test matter` (conservation 1e-9)
-- [ ] E4.S2 — Flore : 5 types fonctionnels, feu, biomes émergents — VERIFY: `cargo test life::flora`
-- [ ] E4.S3 — Faune : cohortes MTE, Holling, dispersion, comportements — VERIFY: `cargo test life::fauna`
-- [ ] E4.S4 — Lignées, mutation, spéciation, extinction, phylogénie — VERIFY: `cargo test life::evolution`
+- [x] E4.S1 — Cycles H₂O, C, N, P, O₂ avec registre de transferts — VERIFY: `cargo test matter` (conservation 1e-9)
+- [x] E4.S2 — Flore : 5 types fonctionnels, feu, biomes émergents — VERIFY: `cargo test life::flora`
+- [x] E4.S3 — Faune : cohortes MTE, Holling, dispersion, comportements — VERIFY: `cargo test life::fauna`
+- [x] E4.S4 — Lignées, mutation, spéciation, extinction, phylogénie — VERIFY: `cargo test life::evolution`
 - [ ] E4.S5 — Grandes transitions (abiogenèse → sortie des eaux) sans script — VERIFY: `cargo test life::transitions` (50 graines)
 - [ ] E4.S6 — Inspecteur région / espèce, calques biomes et productivité, arbre phylogénétique — VERIFY: `pnpm test:e2e --grep inspector`
 

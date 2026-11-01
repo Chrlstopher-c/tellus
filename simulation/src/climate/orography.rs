@@ -84,7 +84,11 @@ mod tests {
         let elevation: Vec<f64> = grid.centers().iter().map(|c| 1_000.0 * c[0]).collect();
         let grads = gradient(&mesh, &elevation);
         let c = grid.centers()[40];
-        let expected = [1_000.0 * (1.0 - c[0] * c[0]), -1_000.0 * c[0] * c[1], -1_000.0 * c[0] * c[2]];
+        let expected = [
+            1_000.0 * (1.0 - c[0] * c[0]),
+            -1_000.0 * c[0] * c[1],
+            -1_000.0 * c[0] * c[2],
+        ];
         let err = (0..3).map(|a| (grads[40][a] - expected[a]).abs()).fold(0.0, f64::max);
         assert!(err < 150.0, "gradient erroné : {:?} vs {expected:?}", grads[40]);
     }
