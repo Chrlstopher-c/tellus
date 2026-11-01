@@ -2,4 +2,5 @@
 
 pub mod climate;
 pub mod clock;
+pub mod life;
 pub mod shared;
