@@ -13,6 +13,7 @@ mod g7_sea_level;
 mod g8_checks;
 mod graph;
 mod noise;
+mod presets;
 mod vec3;
 
 #[cfg(test)]
@@ -21,6 +22,7 @@ mod tests;
 use std::fmt;
 
 pub use g2_motion::Plate;
+pub use presets::real_body;
 
 use crate::shared::grid::Grid;
 use crate::shared::units::R_EARTH_M;
