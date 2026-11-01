@@ -14,3 +14,9 @@ pub const BOLTZMANN_EV: f64 = 8.617_333_262e-5;
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 /// Secondes dans une année julienne.
 pub const SECONDS_PER_YEAR: f64 = 365.25 * SECONDS_PER_DAY;
+/// Grammes par gigatonne (1 Gt = 10¹⁵ g).
+pub const GRAMS_PER_GT: f64 = 1.0e15;
+/// Lame d'eau sur une surface : 1 mm sur 1 m² = 1e-12 km³.
+pub const KM3_PER_MM_M2: f64 = 1.0e-12;
+/// ppm de CO₂ atmosphérique par GtC (2,124 GtC/ppm, docs/recherche/nutriments.md § 0).
+pub const GTC_PER_PPM: f64 = 2.124;
