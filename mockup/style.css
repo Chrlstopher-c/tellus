@@ -21,6 +21,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 400 13px/1.45 var(--font); }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 svg.lucide { width: 16px; height: 16px; stroke-width: 1.6; }

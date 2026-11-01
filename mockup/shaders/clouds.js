@@ -5,11 +5,12 @@ import { NOISE, TONE, MORPH } from './noise.js';
 const CLOUD_FN = /* glsl */ `
 vec3 rotY(vec3 p,float a){float c=cos(a),s=sin(a);return vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);}
 float cloudAt(vec3 p,float t,float precip){
-  vec3 q=p*2.6+vec3(0.0,0.0,t*0.004);
+  vec3 q=p*1.7+vec3(0.0,0.0,t*0.004);
   vec3 w=vec3(fbm(q+vec3(1.3,0.0,0.0),3),fbm(q+vec3(0.0,4.1,0.0),3),fbm(q+vec3(0.0,0.0,8.2),3));
-  float n=fbm(q*1.4+w*1.1,5)*0.5+0.5;
+  float n=fbm(q*1.2+w*0.55,6)*0.5+0.5;
+  n=n*0.8+0.2*(fbm(q*5.0+w,3)*0.5+0.5);
   float thr=mix(0.66,0.42,smoothstep(150.0,2600.0,precip));
-  return smoothstep(thr,thr+0.22,n);
+  return smoothstep(thr,thr+0.3,n);
 }
 float cloudDensity(vec3 d,float t,float precip){
   float lat=asin(clamp(d.y,-1.0,1.0));
@@ -82,8 +83,8 @@ void main(){
   float t=clamp(-dot(N,V)/uLimb,0.0,1.0);
   float glow=pow(t,3.0);
   float mu=dot(N,normalize(uSun));
-  float day=smoothstep(-0.35,0.25,mu);
-  vec3 col=mix(vec3(1.0,0.55,0.30),vec3(0.20,0.42,1.0),smoothstep(0.0,0.25,mu));
+  float day=smoothstep(-0.12,0.2,mu);
+  vec3 col=mix(vec3(0.9,0.5,0.3),vec3(0.20,0.42,1.0),smoothstep(-0.04,0.12,mu));
   gl_FragColor=vec4(shoulder(col*glow*day*0.55*uOpacity),1.0);
   #include <colorspace_fragment>
 }

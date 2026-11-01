@@ -111,12 +111,12 @@ void main(){
   float natural=uLayerA==0||uLayerB==0?(uLayerA==0&&uLayerB==0?1.0:(uLayerA==0?1.0-uLayerMix:uLayerMix)):0.0;
   vec3 H=normalize(L+V);
   float wob=0.82+0.18*snoise(vDir*180.0+uTime*0.05);
-  float spec=pow(max(dot(N,H),0.0),140.0*wob)*1.6+pow(max(dot(N,H),0.0),16.0)*0.05;
+  float spec=pow(max(dot(N,H),0.0),900.0*wob)*0.9+pow(max(dot(N,H),0.0),90.0)*0.035;
   float ice=1.0-smoothstep(-6.0,-1.6,f.g);
   lit+=vec3(1.0,0.95,0.86)*spec*day*(1.0-ice)*(1.0-landW)*natural;
   float fres=pow(1.0-max(dot(N,V),0.0),2.6);
   float a=fres*(1.0-vFlat);
-  lit=lit*(1.0-0.35*a)+vec3(0.20,0.42,1.0)*0.55*smoothstep(-0.35,0.25,mu)*a;
+  lit=lit*(1.0-0.35*a)+vec3(0.20,0.42,1.0)*0.55*smoothstep(-0.12,0.2,mu)*a;
   lit+=base*vec3(0.010,0.014,0.024)*(1.0-day);
   float hill=clamp(0.62+0.55*dot(Nb,normalize(vec3(-0.6,0.7,0.9))),0.3,1.25);
   vec3 flatLit=base*hill/1.005;

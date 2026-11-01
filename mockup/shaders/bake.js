@@ -46,14 +46,14 @@ void main(){
   float lat=asin(d.y);
   float L=abs(lat)*180.0/PI;
   float n1=fbm(d*5.0+vec3(uSeed),3);
-  float t=29.0-49.0*pow(abs(sin(lat)),1.3)+uTempOffset;
+  float t=29.0-47.0*pow(abs(sin(lat)),3.0)+uTempOffset;
   t-=6.5*max(elev,0.0)/1000.0;
   t+=n1*2.5;
   if(elev<0.0)t=max(t,-1.8+min(0.0,t+18.0)*0.4);
   float p=2500.0*exp(-pow(L/9.5,2.0))+1150.0*exp(-pow((L-52.0)/13.0,2.0))+260.0;
-  p*=1.0-0.72*exp(-pow((L-26.0)/8.5,2.0));
+  p*=1.0-0.62*exp(-pow((L-26.0)/8.5,2.0));
   if(land>0.0){
-    p*=mix(1.0,0.38,smoothstep(0.04,0.32,land));
+    p*=mix(1.0,0.55,smoothstep(0.04,0.32,land));
     p+=mount*1100.0*smoothstep(0.0,0.1,land);
   }
   p*=0.72+0.56*(fbm(d*3.3-vec3(uSeed),4)*0.5+0.5);
