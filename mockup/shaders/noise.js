@@ -76,3 +76,37 @@ vec2 uvFromDir(vec3 d){
   return vec2(atan(d.x,d.z)/TAU+0.5,asin(clamp(d.y,-1.0,1.0))/PI+0.5);
 }
 `;
+
+// Chaîne tonale commune : décodage sRGB exact et épaule douce qui conserve la teinte.
+export const TONE = /* glsl */ `
+vec3 lin(vec3 c){return mix(c/12.92,pow((c+0.055)/1.055,vec3(2.4)),step(0.04045,c));}
+vec3 shoulder(vec3 c){
+  float m=max(max(c.r,c.g),c.b);
+  return m<=0.8?c:c*(0.8+0.2*(1.0-exp(-(m-0.8)/0.2)))/m;
+}
+`;
+
+// Morphing globe → carte partagé par la surface et les nuages (une seule règle).
+export const MORPH = /* glsl */ `
+uniform float uMorph;
+varying vec2 vUv;
+varying vec3 vDir;
+varying vec3 vNormalW;
+varying vec3 vPosW;
+varying float vFlat;
+void morphVertex(float radius,float zFlat){
+  vUv=uv;
+  float lon=(uv.x-0.5)*6.28318530718;
+  float lat=(uv.y-0.5)*3.14159265359;
+  vec3 d=vec3(cos(lat)*sin(lon),sin(lat),cos(lat)*cos(lon));
+  vec3 flatPos=vec3(lon/3.14159265359*1.6,lat/3.14159265359*1.6,zFlat);
+  float k=clamp(uMorph*1.45-(0.5-abs(uv.x-0.5))*0.9,0.0,1.0);
+  k=k*k*(3.0-2.0*k);
+  vFlat=k;
+  vDir=d;
+  vec4 wp=modelMatrix*vec4(mix(d*radius,flatPos,k),1.0);
+  vPosW=wp.xyz;
+  vNormalW=normalize(mix(normalize(mat3(modelMatrix)*d),vec3(0.0,0.0,1.0),k));
+  gl_Position=projectionMatrix*viewMatrix*wp;
+}
+`;

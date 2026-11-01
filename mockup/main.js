@@ -1,5 +1,6 @@
 // Point d'entrée de la maquette : relie la scène 3D à l'interface.
 import { createPlanet } from './planet.js';
+import { renderStart } from './start.js';
 import {
   renderLayers, renderInspector, renderVitals, renderTimeline, renderSpeeds, renderPowers,
   renderWorldMenu, formatYear, SPEEDS, WORLDS,
@@ -7,7 +8,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const planet = createPlanet($('scene'));
-const sim = { year: 412806233, speed: 2, playing: true, visualTime: 0, world: 0, power: null };
+const sim = { year: 4093412806, speed: 2, playing: true, visualTime: 0, world: 0, power: null };
 
 planet.resize();
 planet.bake();
@@ -49,7 +50,7 @@ segs.forEach((b) => b.addEventListener('click', () => {
 $('dual').addEventListener('click', (e) => {
   const on = e.currentTarget.classList.toggle('on');
   toast(on ? 'Mode deux écrans activé' : 'Mode deux écrans désactivé',
-    on ? 'La carte et les panneaux passent sur le second écran.' : 'Tout revient sur un seul écran.', 'var(--time)');
+    on ? 'La carte et les panneaux passent sur le second écran.' : 'Tout revient sur un seul écran.', 'var(--select)');
 });
 
 const menu = $('world-menu');
@@ -89,13 +90,16 @@ function toast(title, body, color = 'var(--life)') {
   const t = $('toast');
   $('toast-title').textContent = title;
   $('toast-body').textContent = body;
-  t.querySelector('.toast-dot').style.cssText = `background:${color};box-shadow:0 0 12px ${color}`;
+  t.querySelector('.toast-dot').style.background = color;
   t.hidden = false;
   t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, 5200);
 }
-setTimeout(() => toast('Nouvelle espèce : Thalorella velox', 'Petit prédateur arboricole, forêts de l’hémisphère sud.'), 2500);
+renderStart($('start'), () => {
+  document.body.classList.remove('starting');
+  setTimeout(() => toast('Nouvelle espèce : Thalorella velox', 'Petit prédateur arboricole, forêts de l’hémisphère sud.'), 2500);
+});
 
 let last = performance.now();
 function loop(now) {
@@ -107,7 +111,6 @@ function loop(now) {
     sim.visualTime += dt * (0.6 + sim.speed * 0.45);
   }
   $('year').textContent = formatYear(sim.year);
-  $('fill').style.width = `${Math.min(100, 90.5 + (sim.year - 412806233) / 4.5e7)}%`;
   planet.frame(dt, sim.visualTime, sim.playing ? sp.spin : 0.004);
   requestAnimationFrame(loop);
 }

@@ -8,3 +8,5 @@ logs/
 .env
 .env.local
 *.log
+test-results/
+playwright-report/

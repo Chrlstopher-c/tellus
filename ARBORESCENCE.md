@@ -11,6 +11,11 @@
 - `.gitignore`
 - `start.sh` / `stop.sh` / `restart.sh` — cycle de vie avec PID et journal remis à zéro
 - `.github/workflows/ci.yml` — CI (shell, interface, simulation)
+- `docs/REGLES.md` — contrat des règles du monde (fait foi)
+- `docs/recherche/` — planetes, genese, climat, nutriments, vivant, socle-technique
+- `mockup/` — maquette visuelle (index.html, style.css, main.js, ui.js, start.js, planet.js, shaders/{noise,bake,surface,clouds}.js)
+- `simulation/data/planets.json` — données NASA des corps du système solaire
+- `.claude/launch.json` — serveur local de la maquette
 - `desktop/` — processus principal Electron (vide)
 - `interface/` — application React (vide)
 - `simulation/` — crate Rust → wasm (vide)

@@ -1,22 +1,25 @@
 // Interface de la maquette : calques, légendes, inspecteur, temps, pouvoirs, choix du monde.
+import { PAL, cssHex, cssRamp } from './shaders/palettes.js';
+
+const swatch = (arr) => cssRamp(arr).replace('90deg', '135deg');
+const RELIEF_BAR = cssRamp([PAL.reliefSea[1], PAL.reliefSea[0], ...PAL.relief]);
+
 export const LAYERS = [
-  { id: 'natural', name: 'Naturel', swatch: 'linear-gradient(135deg,#2c4a2a,#c9b07c 60%,#0d3550)' },
-  { id: 'relief', name: 'Relief', swatch: 'linear-gradient(135deg,#4c6b45,#c29c6a,#f0eee9)' },
-  { id: 'temp', name: 'Température', swatch: 'linear-gradient(135deg,#2b4c7e,#cfe0e3,#d9663f)' },
-  { id: 'rain', name: 'Précipitations', swatch: 'linear-gradient(135deg,#5a4026,#d8d6b5,#1b3f7a)' },
-  { id: 'biome', name: 'Biomes', swatch: 'conic-gradient(#2a7345,#e0b973,#a8b26c,#6b8e86,#2a7345)' },
-  { id: 'life', name: 'Productivité', swatch: 'linear-gradient(135deg,#1a1c1a,#4a7a3d,#d0e8a0)' },
+  { id: 'natural', name: 'Naturel', swatch: 'linear-gradient(135deg,#2a3f24,#c9b07c 55%,#0d2a4d)' },
+  { id: 'relief', name: 'Relief', swatch: swatch(PAL.relief) },
+  { id: 'temp', name: 'Température', swatch: swatch(PAL.temp) },
+  { id: 'rain', name: 'Précipitations', swatch: swatch(PAL.rain) },
+  { id: 'biome', name: 'Biomes', swatch: `conic-gradient(${PAL.biomes.map((b) => cssHex(b[1])).join(',')})` },
+  { id: 'life', name: 'Productivité', swatch: swatch(PAL.life) },
 ];
 
 const LEGENDS = [
   { note: 'Couleurs vraies, dérivées du climat et du relief simulés.' },
-  { bar: 'linear-gradient(90deg,#0d1f45,#557fa6,#4c6b45,#a3a36b,#c29c6a,#8c7a6f,#f5f3ee)', scale: ['−6 km', '0', '+5 km'] },
-  { bar: 'linear-gradient(90deg,#2b4c7e,#5f8fb4,#cfe0e3,#f2c58a,#d9663f,#8e2a2a)', scale: ['−30 °C', '0', '+35 °C'] },
-  { bar: 'linear-gradient(90deg,#5a4026,#b59a62,#d8d6b5,#6fb0b0,#2d6e9e,#1b3f7a)', scale: ['25', '600', '4 000 mm/an'] },
-  { cats: [['#e6edf4', 'Inlandsis'], ['#a0a8a0', 'Toundra'], ['#4a7064', 'Taïga'], ['#cfb47c', 'Steppe froide'],
-    ['#acb56c', 'Prairie tempérée'], ['#55905a', 'Forêt tempérée'], ['#e3bb76', 'Désert chaud'], ['#cda75c', 'Savane'],
-    ['#6c9f52', 'Forêt saisonnière'], ['#2a7345', 'Forêt tropicale humide']] },
-  { bar: 'linear-gradient(90deg,#1a1c1a,#33522f,#73a35b,#d0e8a0)', scale: ['0', '1 100', '2 200 gC/m²/an'] },
+  { bar: RELIEF_BAR, scale: ['−5,5 km', '+5,2 km'] },
+  { bar: cssRamp(PAL.temp), scale: ['−30 °C', '+35 °C'] },
+  { bar: cssRamp(PAL.rain), scale: ['25', '320', '4 000 mm/an'] },
+  { cats: PAL.biomes.map(([n, c]) => [cssHex(c), n]) },
+  { bar: cssRamp(PAL.life), scale: ['0', '1 100', '2 200 gC/m²/an'] },
 ];
 
 export const WORLDS = [
@@ -33,11 +36,12 @@ export const WORLDS = [
 ];
 
 export const SPEEDS = [
-  { label: '1 h/s', perSec: 1 / 8766, desc: 'une heure par seconde', spin: 0.26 },
-  { label: '1 an/s', perSec: 1, desc: 'une année par seconde', spin: 0.05 },
-  { label: '1 siècle/s', perSec: 100, desc: 'un siècle par seconde', spin: 0.035 },
-  { label: '10 ka/s', perSec: 1e4, desc: 'dix mille ans par seconde', spin: 0.03 },
-  { label: '1 Ma/s', perSec: 1e6, desc: 'un million d’années par seconde', spin: 0.03 },
+  { label: '1 j', perSec: 1 / 365.25, desc: 'un jour par seconde', spin: 0.22 },
+  { label: '1 an', perSec: 1, desc: 'une année par seconde', spin: 0.05 },
+  { label: '100 ans', perSec: 100, desc: 'un siècle par seconde', spin: 0.035 },
+  { label: '10 ka', perSec: 1e4, desc: 'dix mille ans par seconde', spin: 0.03 },
+  { label: '1 Ma', perSec: 1e6, desc: 'un million d’années par seconde', spin: 0.03 },
+  { label: '10 Ma', perSec: 1e7, desc: 'dix millions d’années par seconde', spin: 0.03 },
 ];
 
 const EVENTS = [

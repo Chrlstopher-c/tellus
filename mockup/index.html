@@ -15,7 +15,7 @@
     } }
   </script>
 </head>
-<body>
+<body class="starting">
   <canvas id="scene"></canvas>
   <div class="vignette"></div>
 
@@ -30,8 +30,8 @@
   </header>
 
   <section class="clock">
-    <p class="era" id="era">Phanérozoïque · âge des grandes forêts</p>
-    <p class="year"><span id="year">412 806 233</span> <span class="unit">ans</span></p>
+    <p class="era" id="era">Âge du monde · ère des grandes forêts</p>
+    <p class="year"><span id="year">4 093 412 806</span> <span class="unit">ans</span></p>
   </section>
 
   <div class="toast glass" id="toast" hidden>
@@ -62,9 +62,9 @@
 
   <section class="time glass">
     <div class="timeline" id="timeline">
-      <div class="track"><div class="fill" id="fill"></div></div>
+      <div class="track"><div class="fill" id="fill" style="width:100%"></div></div>
       <div class="ticks" id="ticks"></div>
-      <div class="ends"><span>−4,5 Ga · formation</span><span id="now-label">maintenant</span></div>
+      <div class="ends"><span>Formation</span><span id="now-label">Aujourd’hui</span></div>
     </div>
     <div class="controls">
       <button class="play" id="play" title="Lecture / pause"><i data-lucide="pause"></i></button>
@@ -75,6 +75,8 @@
 
   <section class="powers glass" id="powers"></section>
   <p class="power-hint" id="power-hint" hidden></p>
+
+  <section class="start" id="start"></section>
 
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <script type="module" src="main.js"></script>
