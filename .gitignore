@@ -11,3 +11,5 @@ logs/
 test-results/
 playwright-report/
 .claude/worktrees/
+scripts/dem/.venv/
+scripts/dem/cache/
